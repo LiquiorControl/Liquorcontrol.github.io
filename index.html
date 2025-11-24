@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Master Bar Control Palmas - Sales Analysis</title>
+    <title>Master Bar Control Palmas - Cloud Sync</title>
     
     <!-- 1. Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -16,16 +16,12 @@
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     
     <style>
-        /* Dark Theme Global - Background Darkened */
+        /* Dark Theme Global */
         body { background-color: #020617; color: #e2e8f0; font-family: sans-serif; }
         .animate-in { animation: fadeIn 0.2s ease-out; }
         @keyframes fadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
-        
-        /* Hide number input spinners */
         input[type=number]::-webkit-inner-spin-button, 
         input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
-        
-        /* Scrollbar styling */
         ::-webkit-scrollbar { width: 8px; }
         ::-webkit-scrollbar-track { background: #0f172a; }
         ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
@@ -35,35 +31,46 @@
 <body>
     <div id="root">Loading App...</div>
 
+    <!-- FIREBASE MODULES -->
     <script type="module">
-        // Import Firebase modules (ES Modules for modern browsers)
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getFirestore, doc, setDoc, onSnapshot, getDoc, collection } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-        import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-
-        // Expose Firebase to global scope for React to use
-        window.firebaseModules = { initializeApp, getFirestore, doc, setDoc, onSnapshot, getDoc, collection, getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken };
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getFirestore, doc, setDoc, onSnapshot, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        
+        // Expose to global window for React
+        window.fb = { initializeApp, getFirestore, doc, setDoc, onSnapshot, getDoc, getAuth, signInAnonymously, onAuthStateChanged };
     </script>
 
     <script type="text/babel">
-        class ErrorBoundary extends React.Component {
-            constructor(props) { super(props); this.state = { hasError: false }; }
-            static getDerivedStateFromError(error) { return { hasError: true }; }
+        const { useState, useEffect, useMemo, useRef, Component } = React;
+
+        // --- 1. CONFIGURACIÓN DE LA NUBE (¡IMPORTANTE!) ---
+        // Si dejas esto vacío, la app funcionará en modo "Local Device" (sin sincronizar).
+        // Si pegas tus datos de Firebase, se activará el modo "Cloud Sync".
+        const FIREBASE_CONFIG = {
+            apiKey: "",             // Ejemplo: "AIzaSyD..."
+            authDomain: "",         // Ejemplo: "mi-bar.firebaseapp.com"
+            projectId: "",          // Ejemplo: "mi-bar"
+            storageBucket: "",
+            messagingSenderId: "",
+            appId: ""
+        };
+
+        // --- ERROR BOUNDARY ---
+        class ErrorBoundary extends Component {
+            constructor(props) { super(props); this.state = { hasError: false, error: null }; }
+            static getDerivedStateFromError(error) { return { hasError: true, error }; }
+            componentDidCatch(error, errorInfo) { console.error("Error:", error, errorInfo); }
             render() {
-                if (this.state.hasError) return <div className="p-10 text-center text-red-400">Something went wrong. Please reload.</div>;
+                if (this.state.hasError) return <div className="p-10 text-red-400 bg-gray-900 h-screen flex items-center justify-center">Something went wrong. Reload page.</div>;
                 return this.props.children;
             }
         }
 
-        const { useState, useEffect, useMemo, useRef } = React;
-
         // --- ICONS ---
         const IconWrapper = ({ children, className, size = 24 }) => (
-            <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
-                {children}
-            </svg>
+            <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>{children}</svg>
         );
-
         const Icons = {
             Beer: (p) => <IconWrapper {...p}><path d="M17 11h1a3 3 0 0 1 0 6h-1"/><path d="M9 12h6"/><path d="M9 12v3a8 8 0 0 1-16 0v-3"/><path d="M22 6h-7a2 2 0 0 0-2 2v2"/><path d="M5 12V3a2 2 0 0 1 2-2h7"/></IconWrapper>,
             Wine: (p) => <IconWrapper {...p}><path d="M8 22h8"/><path d="M7 10h10"/><path d="M12 15v7"/><path d="M12 15a5 5 0 0 0 5-5c0-2-.5-4-2-8H9c-1.5 4-2 6-2 8a5 5 0 0 0 5 5Z"/></IconWrapper>,
@@ -86,10 +93,12 @@
             Trash: (p) => <IconWrapper {...p}><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></IconWrapper>,
             BarChart: (p) => <IconWrapper {...p}><line x1="12" x2="12" y1="20" y2="10"/><line x1="18" x2="18" y1="20" y2="4"/><line x1="6" x2="6" y1="20" y2="16"/></IconWrapper>,
             Cloud: (p) => <IconWrapper {...p}><path d="M17.5 19c0-3.037-2.463-5.5-5.5-5.5S6.5 15.963 6.5 19"/><path d="M17.5 19c3.037 0 5.5-2.463 5.5-5.5S20.537 8 17.5 8"/><path d="M17.5 8c0-3.037-2.463-5.5-5.5-5.5S6.5 4.963 6.5 8"/><path d="M6.5 19C3.463 19 1 16.537 1 13.5S3.463 8 6.5 8"/></IconWrapper>,
-            HardDrive: (p) => <IconWrapper {...p}><line x1="22" x2="22" y1="12" y2="12"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/><line x1="6" x2="6.01" y1="16" y2="16"/><line x1="10" x2="10.01" y1="16" y2="16"/></IconWrapper>
+            HardDrive: (p) => <IconWrapper {...p}><line x1="22" x2="22" y1="12" y2="12"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/><line x1="6" x2="6.01" y1="16" y2="16"/><line x1="10" x2="10.01" y1="16" y2="16"/></IconWrapper>,
+            Save: (p) => <IconWrapper {...p}><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></IconWrapper>,
+            Upload: (p) => <IconWrapper {...p}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></IconWrapper>
         };
 
-        // --- MODAL COMPONENT ---
+        // --- COMPONENTES DE UI ---
         const ConfirmationModal = ({ isOpen, onClose, onConfirm, title, message, isDestructive }) => {
             if (!isOpen) return null;
             return (
@@ -109,7 +118,6 @@
             );
         };
 
-        // --- CHARTS COMPONENT ---
         const ChartsView = ({ data, onClose }) => {
             const activeItems = useMemo(() => {
                 let items = [];
@@ -171,105 +179,7 @@
             );
         };
 
-        // --- INITIAL DATA ---
-        const createItem = (id, name, startStock = 0) => ({
-            id, name,
-            bar1: "", bar2: "", bodega: "", barroluco: "",
-            start_bar1: "", start_bar2: "", start_bodega: startStock, start_barroluco: "",
-            purchases: "", sales: ""
-        });
-
-        const INITIAL_DATA = [
-            {
-                category: "Premium Liquor (Tequila/Whisky)",
-                items: [
-                    createItem("liq-1", "Casamigos Blanco", 0),
-                    createItem("liq-2", "Casamigos Reposado", 0),
-                    createItem("liq-23", "Espolon Blanco", 0),
-                    createItem("liq-24", "Espolon Reposado", 0),
-                    createItem("liq-25", "Patron Cristalino", 0),
-                    createItem("liq-3", "Don Julio Blanco", 0),
-                    createItem("liq-4", "Don Julio Reposado", 0),
-                    createItem("liq-6", "Patron Silver", 0),
-                    createItem("liq-7", "Patron Reposado", 0),
-                    createItem("liq-8", "Clase Azul", 0),
-                    createItem("liq-9", "Grand Old Parr 12", 0),
-                    createItem("liq-11", "Crown Royal Regal", 0),
-                    createItem("liq-10", "Apple Crown Royal", 0),
-                    createItem("liq-26", "Hennessy VS", 0),
-                    createItem("liq-12", "Buchanans 12", 0),
-                    createItem("liq-13", "Johnnie Walker Black", 0),
-                    createItem("liq-14", "Capitan Morgan Spice", 0),
-                    createItem("liq-15", "Brugal Anejo", 0),
-                    createItem("liq-27", "Tito's Texas Vodka", 0),
-                    createItem("liq-16", "Grey Goose", 0),
-                    createItem("liq-17", "Jack Daniels Black", 0),
-                    createItem("liq-18", "WoodFord Reserve", 0),
-                    createItem("liq-19", "Fernet Branca", 0),
-                    createItem("liq-28", "Jagermeister", 0),
-                    createItem("liq-29", "Jameson", 0),
-                    createItem("liq-30", "Beefeater", 0),
-                    createItem("liq-32", "Wahaka Mezcal", 0),
-                    createItem("liq-31", "Malibu", 0),
-                    createItem("vin-4", "Moet Imperial Necta Rose", 0),
-                    createItem("liq-20", "Disaronno Amaretto", 0),
-                    createItem("vin-3", "Procecco Zonin", 0),
-                    createItem("liq-21", "Remy Martin", 0),
-                    createItem("liq-22", "Novo Fogo Silver Cachaca", 0),
-                ]
-            },
-            {
-                category: "Wells (House Liquor)",
-                items: [
-                    createItem("wel-1", "Bacardi Light", 0),
-                    createItem("wel-2", "Bacardi Lime", 0),
-                    createItem("wel-13", "Bacardi Limon", 0),
-                    createItem("wel-3", "Pirassununga Cachaça 51", 0),
-                    createItem("wel-4", "Barton Naturals Vodka", 0),
-                    createItem("wel-15", "Barton Gin", 0),
-                    createItem("wel-5", "Peach Schnapps Boston", 0),
-                    createItem("wel-6", "Montezuma White", 0),
-                    createItem("wel-7", "Triple Sec Boston", 0),
-                    createItem("wel-8", "Long Island Tea Mix", 0),
-                    createItem("wel-9", "Curacao Blue", 0),
-                    createItem("wel-10", "Melon Boston", 0),
-                    createItem("wel-14", "Sour Apple", 0),
-                    createItem("wel-11", "Sour Apple HW", 0),
-                    createItem("wel-12", "Sour Cherry Boston", 0),
-                ]
-            },
-            {
-                category: "Seltzer & Energy",
-                items: [
-                    createItem("sel-1", "Red Bull Sugar Free", 0),
-                    createItem("sel-2", "Red Bull Regular", 0),
-                    createItem("sel-3", "Red Bull Watermelon", 0),
-                    createItem("sel-4", "Red Bull Juneberry", 0),
-                    createItem("sel-5", "High Noon Variety Pack", 0),
-                ]
-            },
-            {
-                category: "Beers",
-                items: [
-                    createItem("cer-1", "Pacifico", 0),
-                    createItem("cer-2", "Michelob Ultra", 0),
-                    createItem("cer-3", "Modelo Especial", 0),
-                    createItem("cer-5", "Corona", 0),
-                    createItem("cer-4", "Heineken", 0),
-                ]
-            },
-            {
-                category: "Wines",
-                items: [
-                    createItem("vin-1", "Sangria", 0),
-                    createItem("vin-2", "Chardonnay El Enemigo", 0),
-                ]
-            }
-        ];
-
-        // --- COMPONENTS ---
-
-        const Header = ({ onNewPeriod, onClearAll, onDownload, onShowCharts, isCloud }) => (
+        const Header = ({ onNewPeriod, onClearAll, onDownload, onShowCharts, onBackup, onRestore, isCloud }) => (
             <header className="bg-black/90 border-b border-gray-800 text-white p-4 sticky top-0 z-30 shadow-2xl backdrop-blur-md">
                 <div className="max-w-6xl mx-auto flex flex-col lg:flex-row justify-between items-center gap-4">
                     <div className="flex items-center gap-3 w-full lg:w-auto">
@@ -280,25 +190,37 @@
                             <h1 className="font-bold text-lg leading-tight text-gray-100">Master Bar Control Palmas</h1>
                             <div className="flex items-center gap-2 text-xs">
                                 <span className="text-gray-400">Sales Analysis</span>
-                                <span className={`px-2 py-0.5 rounded-full border ${isCloud ? 'bg-indigo-900/30 border-indigo-500/50 text-indigo-300' : 'bg-gray-800 border-gray-600 text-gray-400'} flex items-center gap-1`}>
+                                <span className={`px-2 py-0.5 rounded-full border ${isCloud ? 'bg-indigo-900/30 border-indigo-500/50 text-indigo-300' : 'bg-gray-800 border-gray-600 text-gray-400'} flex items-center gap-1 transition-colors`}>
                                     {isCloud ? <Icons.Cloud size={10} /> : <Icons.HardDrive size={10} />}
-                                    {isCloud ? 'Cloud Sync' : 'Local Device'}
+                                    {isCloud ? 'Cloud Sync' : 'Device Storage'}
                                 </span>
                             </div>
                         </div>
                     </div>
-                    <div className="flex flex-wrap justify-center gap-2 w-full lg:w-auto lg:justify-end">
+                    <div className="flex flex-wrap justify-center lg:justify-end gap-2 w-full lg:w-auto">
+                        {!isCloud && (
+                            <div className="flex gap-2 mr-2 pr-2 border-r border-gray-700">
+                                <button onClick={onBackup} className="flex items-center gap-1 bg-gray-800 hover:bg-gray-700 text-gray-300 px-3 py-2 rounded-lg text-sm border border-gray-600 transition-all" title="Backup">
+                                    <Icons.Save size={16} className="text-amber-400" />
+                                    <span className="hidden xl:inline">Backup</span>
+                                </button>
+                                <button onClick={onRestore} className="flex items-center gap-1 bg-gray-800 hover:bg-gray-700 text-gray-300 px-3 py-2 rounded-lg text-sm border border-gray-600 transition-all" title="Restore">
+                                    <Icons.Upload size={16} className="text-blue-400" />
+                                    <span className="hidden xl:inline">Restore</span>
+                                </button>
+                            </div>
+                        )}
                         <button onClick={onShowCharts} className="flex items-center gap-2 bg-gray-800 hover:bg-gray-700 text-white px-3 py-2 rounded-lg font-medium transition-all border border-gray-600 text-sm">
-                            <Icons.BarChart size={18} className="text-amber-400" />
-                            Charts
+                            <Icons.BarChart size={18} className="text-purple-400" />
+                            <span className="hidden sm:inline">Charts</span>
                         </button>
                         <button onClick={onNewPeriod} className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-lg font-medium transition-all shadow-lg shadow-indigo-900/20 active:scale-95 text-sm">
                             <Icons.ArrowRight size={18} />
-                            Next Period
+                            <span className="hidden sm:inline">Next Period</span>
                         </button>
                         <button onClick={onDownload} className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-lg font-medium transition-all shadow-lg shadow-emerald-900/20 active:scale-95 text-sm">
                             <Icons.Download size={18} />
-                            CSV
+                            <span className="hidden sm:inline">CSV</span>
                         </button>
                         <button onClick={onClearAll} className="p-2 bg-red-900/30 hover:bg-red-900/50 text-red-400 rounded-lg transition-all border border-red-900/30" title="Clear All">
                             <Icons.Trash size={20} />
@@ -309,7 +231,7 @@
         );
 
         const CategoryHeader = ({ title, icon: Icon, isOpen, toggle }) => (
-            <button onClick={toggle} className="w-full flex items-center justify-between p-4 bg-gray-800/80 border border-gray-700/50 hover:bg-gray-800 rounded-xl shadow-lg mb-2 transition-all sticky top-[80px] z-20 backdrop-blur-sm group">
+            <button onClick={toggle} className="w-full flex items-center justify-between p-4 bg-gray-800/80 border border-gray-700/50 hover:bg-gray-800 rounded-xl shadow-lg mb-2 transition-all sticky top-[88px] z-20 backdrop-blur-sm group">
                 <div className="flex items-center gap-3">
                     <div className="text-amber-500 group-hover:text-amber-400 transition-colors">
                         <Icon size={20} />
@@ -437,66 +359,154 @@
             );
         };
 
+        // --- INITIAL DATA ---
+        const createItem = (id, name, startStock = 0) => ({
+            id, name,
+            bar1: "", bar2: "", bodega: "", barroluco: "",
+            start_bar1: "", start_bar2: "", start_bodega: startStock, start_barroluco: "",
+            purchases: "", sales: ""
+        });
+
+        const INITIAL_DATA = [
+            {
+                category: "Premium Liquor (Tequila/Whisky)",
+                items: [
+                    createItem("liq-1", "Casamigos Blanco", 0),
+                    createItem("liq-2", "Casamigos Reposado", 0),
+                    createItem("liq-23", "Espolon Blanco", 0),
+                    createItem("liq-24", "Espolon Reposado", 0),
+                    createItem("liq-25", "Patron Cristalino", 0),
+                    createItem("liq-3", "Don Julio Blanco", 0),
+                    createItem("liq-4", "Don Julio Reposado", 0),
+                    createItem("liq-6", "Patron Silver", 0),
+                    createItem("liq-7", "Patron Reposado", 0),
+                    createItem("liq-8", "Clase Azul", 0),
+                    createItem("liq-9", "Grand Old Parr 12", 0),
+                    createItem("liq-11", "Crown Royal Regal", 0),
+                    createItem("liq-10", "Apple Crown Royal", 0),
+                    createItem("liq-26", "Hennessy VS", 0),
+                    createItem("liq-12", "Buchanans 12", 0),
+                    createItem("liq-13", "Johnnie Walker Black", 0),
+                    createItem("liq-14", "Capitan Morgan Spice", 0),
+                    createItem("liq-15", "Brugal Anejo", 0),
+                    createItem("liq-27", "Tito's Texas Vodka", 0),
+                    createItem("liq-16", "Grey Goose", 0),
+                    createItem("liq-17", "Jack Daniels Black", 0),
+                    createItem("liq-18", "WoodFord Reserve", 0),
+                    createItem("liq-19", "Fernet Branca", 0),
+                    createItem("liq-28", "Jagermeister", 0),
+                    createItem("liq-29", "Jameson", 0),
+                    createItem("liq-30", "Beefeater", 0),
+                    createItem("liq-32", "Wahaka Mezcal", 0),
+                    createItem("liq-31", "Malibu", 0),
+                    createItem("vin-4", "Moet Imperial Necta Rose", 0),
+                    createItem("liq-20", "Disaronno Amaretto", 0),
+                    createItem("vin-3", "Procecco Zonin", 0),
+                    createItem("liq-21", "Remy Martin", 0),
+                    createItem("liq-22", "Novo Fogo Silver Cachaca", 0),
+                ]
+            },
+            {
+                category: "Wells (House Liquor)",
+                items: [
+                    createItem("wel-1", "Bacardi Light", 0),
+                    createItem("wel-2", "Bacardi Lime", 0),
+                    createItem("wel-13", "Bacardi Limon", 0),
+                    createItem("wel-3", "Pirassununga Cachaça 51", 0),
+                    createItem("wel-4", "Barton Naturals Vodka", 0),
+                    createItem("wel-15", "Barton Gin", 0),
+                    createItem("wel-5", "Peach Schnapps Boston", 0),
+                    createItem("wel-6", "Montezuma White", 0),
+                    createItem("wel-7", "Triple Sec Boston", 0),
+                    createItem("wel-8", "Long Island Tea Mix", 0),
+                    createItem("wel-9", "Curacao Blue", 0),
+                    createItem("wel-10", "Melon Boston", 0),
+                    createItem("wel-14", "Sour Apple", 0),
+                    createItem("wel-11", "Sour Apple HW", 0),
+                    createItem("wel-12", "Sour Cherry Boston", 0),
+                ]
+            },
+            {
+                category: "Seltzer & Energy",
+                items: [
+                    createItem("sel-1", "Red Bull Sugar Free", 0),
+                    createItem("sel-2", "Red Bull Regular", 0),
+                    createItem("sel-3", "Red Bull Watermelon", 0),
+                    createItem("sel-4", "Red Bull Juneberry", 0),
+                    createItem("sel-5", "High Noon Variety Pack", 0),
+                ]
+            },
+            {
+                category: "Beers",
+                items: [
+                    createItem("cer-1", "Pacifico", 0),
+                    createItem("cer-2", "Michelob Ultra", 0),
+                    createItem("cer-3", "Modelo Especial", 0),
+                    createItem("cer-5", "Corona", 0),
+                    createItem("cer-4", "Heineken", 0),
+                ]
+            },
+            {
+                category: "Wines",
+                items: [
+                    createItem("vin-1", "Sangria", 0),
+                    createItem("vin-2", "Chardonnay El Enemigo", 0),
+                ]
+            }
+        ];
+
         // --- MAIN APP ---
 
         function App() {
             const [data, setData] = useState(INITIAL_DATA);
             const [loading, setLoading] = useState(true);
-            const [isCloud, setIsCloud] = useState(false); // Tracks if we are using Firestore
+            const [isCloud, setIsCloud] = useState(false);
             const [user, setUser] = useState(null);
-            
-            // Helper to access window.firebaseModules safely
-            const fb = window.firebaseModules;
+            const fileInputRef = useRef(null);
+            const fb = window.fb;
 
             // --- INIT DATA SOURCE ---
             useEffect(() => {
                 const initApp = async () => {
-                    // 1. Check if we are in the AI environment (config exists)
-                    if (typeof __firebase_config !== 'undefined' && fb) {
+                    // Check if USER provided config in the script above
+                    if (FIREBASE_CONFIG.apiKey && fb) {
                         try {
-                            setIsCloud(true);
-                            const app = fb.initializeApp(JSON.parse(__firebase_config));
+                            const app = fb.initializeApp(FIREBASE_CONFIG);
                             const auth = fb.getAuth(app);
                             const db = fb.getFirestore(app);
                             
-                            // Login logic
-                            if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                                await fb.signInWithCustomToken(auth, __initial_auth_token);
-                            } else {
-                                await fb.signInAnonymously(auth);
-                            }
+                            await fb.signInAnonymously(auth);
 
                             fb.onAuthStateChanged(auth, (u) => {
                                 setUser(u);
                                 if (u) {
-                                    // Set up Listener
-                                    // Use 'public' path so all devices in this environment share data
-                                    const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-                                    // Corrected path: 6 segments (Even number)
-                                    const docRef = fb.doc(db, 'artifacts', appId, 'public', 'data', 'inventory_data', 'master');
+                                    setIsCloud(true);
+                                    // Path: inventory/master (simple collection/doc)
+                                    const docRef = fb.doc(db, 'inventory', 'master');
                                     
                                     fb.onSnapshot(docRef, (docSnap) => {
                                         if (docSnap.exists()) {
                                             setData(docSnap.data().items);
                                         } else {
-                                            // If new, save initial data
+                                            // Initialize Cloud DB if empty
                                             fb.setDoc(docRef, { items: INITIAL_DATA });
                                             setData(INITIAL_DATA);
                                         }
                                         setLoading(false);
                                     }, (error) => {
                                         console.error("Sync Error", error);
-                                        setLoading(false);
+                                        // Fallback to local if permission denied or net error
+                                        loadLocal();
                                     });
                                 }
                             });
                         } catch (e) {
-                            console.error("Firebase Init Failed, falling back to local", e);
+                            console.error("Firebase Init Failed", e);
                             setIsCloud(false);
                             loadLocal();
                         }
                     } else {
-                        // 2. Downloaded / Local Mode
+                        // 2. No Config = Local Mode
                         setIsCloud(false);
                         loadLocal();
                     }
@@ -513,21 +523,15 @@
                 initApp();
             }, []);
 
-            // --- SAVE DATA ---
             const saveData = (newData) => {
                 setData(newData);
                 
-                if (isCloud && user) {
+                if (isCloud && user && FIREBASE_CONFIG.apiKey) {
                     // Save to Cloud
                     try {
-                        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-                        // Note: In real React usage we'd import 'db', here we grab from window logic or simplified closure
-                        // For simplicity in this single-file structure, we re-grab instances or rely on closure if structured differently.
-                        // Re-instantiating for the save call to be safe in this scope:
-                        const app = fb.initializeApp(JSON.parse(__firebase_config));
+                        const app = fb.initializeApp(FIREBASE_CONFIG);
                         const db = fb.getFirestore(app);
-                        // Corrected path here too
-                        const docRef = fb.doc(db, 'artifacts', appId, 'public', 'data', 'inventory_data', 'master');
+                        const docRef = fb.doc(db, 'inventory', 'master');
                         fb.setDoc(docRef, { items: newData });
                     } catch (e) { console.error("Save failed", e); }
                 } else {
@@ -591,6 +595,43 @@
                 saveData(INITIAL_DATA);
                 setModalConfig(null);
                 showNotification("Database Reset to ZERO.");
+            };
+
+            // --- BACKUP & RESTORE ---
+            const handleBackup = () => {
+                const jsonString = JSON.stringify(data);
+                const blob = new Blob([jsonString], { type: "application/json" });
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement("a");
+                link.href = url;
+                link.download = `Bar_Backup_${new Date().toLocaleDateString().replace(/\//g, '-')}.json`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                showNotification("Backup Saved!");
+            };
+
+            const triggerRestore = () => fileInputRef.current.click();
+
+            const handleRestoreFile = (event) => {
+                const file = event.target.files[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    try {
+                        const importedData = JSON.parse(e.target.result);
+                        if (Array.isArray(importedData) && importedData[0].category) {
+                            saveData(importedData);
+                            showNotification("Data Restored Successfully!");
+                        } else {
+                            alert("Invalid backup file format.");
+                        }
+                    } catch (err) {
+                        alert("Error reading file.");
+                    }
+                };
+                reader.readAsText(file);
+                event.target.value = null; 
             };
 
             const updateItem = (itemId, field, value) => {
@@ -661,7 +702,18 @@
 
             return (
                 <div className="min-h-screen bg-slate-50 font-sans pb-20">
-                    <Header onNewPeriod={confirmNewPeriod} onClearAll={confirmClearAll} onDownload={downloadReport} onShowCharts={() => setShowCharts(true)} isCloud={isCloud} />
+                    <Header 
+                        onNewPeriod={confirmNewPeriod} 
+                        onClearAll={confirmClearAll} 
+                        onDownload={downloadReport} 
+                        onShowCharts={() => setShowCharts(true)} 
+                        onBackup={handleBackup}
+                        onRestore={triggerRestore}
+                        isCloud={isCloud} 
+                    />
+                    
+                    <input type="file" ref={fileInputRef} style={{display: 'none'}} accept=".json" onChange={handleRestoreFile} />
+
                     <div className="bg-gray-900 p-4 border-b border-gray-800 sticky top-[72px] z-20">
                         <div className="max-w-5xl mx-auto relative">
                             <Icons.Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" size={20} />
