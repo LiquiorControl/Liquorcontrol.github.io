@@ -15,10 +15,11 @@
     <!-- 3. Babel -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
-    <!-- 4. Scanner Library -->
+    <!-- 4. Scanner Library (Secure Load) -->
     <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
     
     <style>
+        /* Dark Theme Global */
         body { background-color: #020617; color: #e2e8f0; font-family: sans-serif; }
         .animate-in { animation: fadeIn 0.2s ease-out; }
         @keyframes fadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
@@ -28,8 +29,11 @@
         ::-webkit-scrollbar-track { background: #0f172a; }
         ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
         ::-webkit-scrollbar-thumb:hover { background: #475569; }
+        
+        /* Scanner Fixes */
         #reader { border: none !important; }
         #reader video { border-radius: 12px; object-fit: cover; width: 100% !important; }
+        #reader__scan_region { background: white; }
     </style>
 </head>
 <body>
@@ -40,6 +44,7 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getFirestore, doc, setDoc, onSnapshot, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
         import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        // Expose to window
         window.fb = { initializeApp, getFirestore, doc, setDoc, onSnapshot, getDoc, getAuth, signInAnonymously, onAuthStateChanged };
     </script>
 
@@ -47,7 +52,7 @@
         const { useState, useEffect, useMemo, useRef, Component } = React;
 
         // ==========================================
-        // ⚠️ CONFIGURACIÓN FIREBASE
+        // 🔑 CONFIGURACIÓN FIREBASE (ACTIVA)
         // ==========================================
         const FIREBASE_CONFIG = {
             apiKey: "AIzaSyBbyENQwbbPzbwpxd9WIVIkaZP1zYkn8X4",
@@ -66,6 +71,7 @@
                 if (this.state.hasError) return (
                     <div className="flex flex-col items-center justify-center h-screen bg-gray-900 text-red-400 p-6 text-center">
                         <h2 className="text-2xl font-bold mb-2">Application Error</h2>
+                        <p className="mb-4">Something went wrong loading the interface.</p>
                         <pre className="bg-black p-4 rounded text-xs text-left">{this.state.error?.toString()}</pre>
                     </div>
                 );
@@ -223,6 +229,7 @@
                             const maxValue = Math.max(item.systemConsumption, item.sales, 1); 
                             const consumePercent = Math.min((item.systemConsumption / maxValue) * 100, 100);
                             const salesPercent = Math.min((item.sales / maxValue) * 100, 100);
+                            
                             return (
                                 <div key={item.id} className="bg-gray-800 border border-gray-700 p-4 rounded-xl">
                                     <div className="flex justify-between mb-2">
@@ -262,7 +269,7 @@
                                 <span className="text-gray-400">Sales Analysis</span>
                                 <span className={`px-2 py-0.5 rounded-full border ${isCloud ? 'bg-indigo-900/30 border-indigo-500/50 text-indigo-300' : 'bg-gray-800 border-gray-600 text-gray-400'} flex items-center gap-1 transition-colors`}>
                                     {isCloud ? <Icons.Cloud size={10} /> : <Icons.HardDrive size={10} />}
-                                    {isCloud ? 'Cloud Sync' : 'Device Storage'}
+                                    {isCloud ? 'Cloud Sync' : 'Local Device'}
                                 </span>
                             </div>
                         </div>
@@ -439,7 +446,14 @@
                             const app = fb.initializeApp(FIREBASE_CONFIG);
                             const auth = fb.getAuth(app);
                             const db = fb.getFirestore(app);
-                            await fb.signInAnonymously(auth);
+                            
+                            try {
+                                await fb.signInAnonymously(auth);
+                            } catch (authError) {
+                                console.error("Auth failed:", authError);
+                                // Fallback to local if auth fails (e.g. quota exceeded or not enabled)
+                                throw new Error("Auth failed"); 
+                            }
                             
                             fb.onAuthStateChanged(auth, (u) => {
                                 setUser(u);
@@ -454,12 +468,17 @@
                                             setData(INITIAL_DATA);
                                         }
                                         setLoading(false);
+                                    }, (err) => {
+                                         console.error("Snapshot error:", err);
+                                         setIsCloud(false);
+                                         loadLocal();
                                     });
                                 }
                             });
                         } catch (e) { 
-                            console.error(e); 
+                            console.error("Firebase Init Failed", e); 
                             setIsCloud(false); 
+                            // Notification removed as requested to keep UI clean
                             loadLocal(); 
                         }
                     } else {
@@ -631,13 +650,6 @@
                         onScan={() => setIsScanning(true)} 
                     />
                     
-                    {/* CONFIG WARNING */}
-                    {!isConfigured && !isCloud && (
-                        <div className="bg-red-900/50 border-b border-red-500 text-red-200 text-xs p-2 text-center">
-                            ⚠️ <b>Cloud Sync Not Active:</b> Edit this file and add your FIREBASE_CONFIG keys to enable multi-device sync.
-                        </div>
-                    )}
-
                     <input type="file" ref={fileInputRef} style={{display:'none'}} accept=".json" onChange={handleRestoreFile} />
                     
                     {pendingBarcode && (
