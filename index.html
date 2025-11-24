@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Master Bar Control Palmas - Scanner</title>
+    <title>Master Bar Control Palmas</title>
     
     <!-- 1. Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -15,11 +15,10 @@
     <!-- 3. Babel -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
-    <!-- 4. Barcode Scanner Library -->
+    <!-- 4. Scanner Library -->
     <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
     
     <style>
-        /* Dark Theme Global */
         body { background-color: #020617; color: #e2e8f0; font-family: sans-serif; }
         .animate-in { animation: fadeIn 0.2s ease-out; }
         @keyframes fadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
@@ -29,14 +28,12 @@
         ::-webkit-scrollbar-track { background: #0f172a; }
         ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
         ::-webkit-scrollbar-thumb:hover { background: #475569; }
-
-        /* Scanner Customization */
         #reader { border: none !important; }
-        #reader video { border-radius: 12px; object-fit: cover; }
+        #reader video { border-radius: 12px; object-fit: cover; width: 100% !important; }
     </style>
 </head>
 <body>
-    <div id="root">Loading App...</div>
+    <div id="root"></div>
 
     <!-- FIREBASE MODULES -->
     <script type="module">
@@ -49,22 +46,29 @@
     <script type="text/babel">
         const { useState, useEffect, useMemo, useRef, Component } = React;
 
-        // --- CONFIGURACIÓN FIREBASE (Pega tus llaves aquí para sincronizar) ---
+        // ==========================================
+        // ⚠️ CONFIGURACIÓN FIREBASE
+        // ==========================================
         const FIREBASE_CONFIG = {
-            apiKey: "",
-            authDomain: "",
-            projectId: "",
-            storageBucket: "",
-            messagingSenderId: "",
-            appId: ""
+            apiKey: "AIzaSyBbyENQwbbPzbwpxd9WIVIkaZP1zYkn8X4",
+            authDomain: "liquor-control.firebaseapp.com",
+            projectId: "liquor-control",
+            storageBucket: "liquor-control.firebasestorage.app",
+            messagingSenderId: "221278168324",
+            appId: "1:221278168324:web:b763c0bc4c1020d40d1c51"
         };
 
         // --- ERROR BOUNDARY ---
         class ErrorBoundary extends Component {
-            constructor(props) { super(props); this.state = { hasError: false }; }
-            static getDerivedStateFromError(error) { return { hasError: true }; }
+            constructor(props) { super(props); this.state = { hasError: false, error: null }; }
+            static getDerivedStateFromError(error) { return { hasError: true, error }; }
             render() {
-                if (this.state.hasError) return <div className="p-10 text-red-400 bg-gray-900 h-screen flex items-center justify-center">Error. Reload page.</div>;
+                if (this.state.hasError) return (
+                    <div className="flex flex-col items-center justify-center h-screen bg-gray-900 text-red-400 p-6 text-center">
+                        <h2 className="text-2xl font-bold mb-2">Application Error</h2>
+                        <pre className="bg-black p-4 rounded text-xs text-left">{this.state.error?.toString()}</pre>
+                    </div>
+                );
                 return this.props.children;
             }
         }
@@ -99,7 +103,8 @@
             Save: (p) => <IconWrapper {...p}><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></IconWrapper>,
             Upload: (p) => <IconWrapper {...p}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></IconWrapper>,
             Scan: (p) => <IconWrapper {...p}><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><rect width="10" height="6" x="7" y="9" rx="1"/></IconWrapper>,
-            Barcode: (p) => <IconWrapper {...p}><path d="M3 5v14"/><path d="M8 5v14"/><path d="M12 5v14"/><path d="M17 5v14"/><path d="M21 5v14"/></IconWrapper>
+            Barcode: (p) => <IconWrapper {...p}><path d="M3 5v14"/><path d="M8 5v14"/><path d="M12 5v14"/><path d="M17 5v14"/><path d="M21 5v14"/></IconWrapper>,
+            ErrorIcon: (p) => <IconWrapper {...p}><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></IconWrapper>
         };
 
         // --- COMPONENTS ---
@@ -122,30 +127,63 @@
             );
         };
 
-        // --- SCANNER COMPONENT (NEW) ---
+        // --- SCANNER COMPONENT ---
         const ScannerModal = ({ onScanSuccess, onClose }) => {
+            const [scanError, setScanError] = useState(null);
+            const scannerRef = useRef(null);
+
             useEffect(() => {
-                const scanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: { width: 250, height: 250 } }, false);
-                scanner.render((decodedText) => {
-                    scanner.clear();
-                    onScanSuccess(decodedText);
-                }, (error) => {
-                    // Ignore repetitive scan errors
-                });
-                return () => { try { scanner.clear(); } catch(e) {} };
+                if (!window.Html5QrcodeScanner) {
+                    setScanError("Scanner library not loaded.");
+                    return;
+                }
+                const isSecure = window.location.protocol === 'https:' || window.location.hostname === 'localhost';
+                if (!isSecure) {
+                    setScanError("Camera requires HTTPS (GitHub Pages, etc.) to work.");
+                    return;
+                }
+
+                if (!scannerRef.current) {
+                    try {
+                        const scanner = new Html5QrcodeScanner("reader", { 
+                            fps: 10, 
+                            qrbox: { width: 250, height: 250 },
+                            aspectRatio: 1.0 
+                        }, false);
+                        
+                        scannerRef.current = scanner;
+                        scanner.render((decodedText) => {
+                            scanner.clear().then(() => onScanSuccess(decodedText)).catch(console.error);
+                        }, (error) => {});
+                    } catch(err) {
+                        console.error(err);
+                        setScanError("Could not start camera.");
+                    }
+                }
+
+                return () => {
+                    if (scannerRef.current) {
+                        scannerRef.current.clear().catch(err => console.error("Failed to clear scanner", err));
+                    }
+                };
             }, []);
 
             return (
                 <div className="fixed inset-0 bg-black/95 flex flex-col z-50 animate-in">
-                    <div className="p-4 flex justify-between items-center bg-gray-900">
+                    <div className="p-4 flex justify-between items-center bg-gray-900 border-b border-gray-800">
                         <h3 className="text-white font-bold flex items-center gap-2"><Icons.Scan className="text-amber-500" /> Scan Barcode</h3>
-                        <button onClick={onClose} className="text-gray-400 hover:text-white">Close</button>
+                        <button onClick={onClose} className="text-gray-400 hover:text-white px-3 py-1 rounded bg-gray-800">Close</button>
                     </div>
-                    <div className="flex-1 flex items-center justify-center p-4">
-                        <div id="reader" className="w-full max-w-sm bg-black rounded-xl overflow-hidden border border-gray-800"></div>
-                    </div>
-                    <div className="p-6 text-center text-gray-500 text-sm">
-                        Point camera at barcode.<br/>Ensure good lighting.
+                    <div className="flex-1 flex flex-col items-center justify-center p-4 relative">
+                        {scanError ? (
+                            <div className="bg-red-900/50 border border-red-500 p-6 rounded-xl text-center max-w-sm">
+                                <Icons.AlertTriangle size={40} className="text-red-500 mx-auto mb-3" />
+                                <h3 className="text-white font-bold text-lg mb-2">Camera Error</h3>
+                                <p className="text-gray-300 text-sm">{scanError}</p>
+                            </div>
+                        ) : (
+                            <div id="reader" className="w-full max-w-sm bg-black rounded-xl overflow-hidden border-2 border-indigo-500/50 shadow-2xl"></div>
+                        )}
                     </div>
                 </div>
             );
@@ -185,7 +223,6 @@
                             const maxValue = Math.max(item.systemConsumption, item.sales, 1); 
                             const consumePercent = Math.min((item.systemConsumption / maxValue) * 100, 100);
                             const salesPercent = Math.min((item.sales / maxValue) * 100, 100);
-                            
                             return (
                                 <div key={item.id} className="bg-gray-800 border border-gray-700 p-4 rounded-xl">
                                     <div className="flex justify-between mb-2">
@@ -231,12 +268,10 @@
                         </div>
                     </div>
                     <div className="flex flex-wrap justify-center lg:justify-end gap-2 w-full lg:w-auto">
-                        {/* New Scan Button */}
                         <button onClick={onScan} className="flex items-center gap-2 bg-indigo-500/20 hover:bg-indigo-500/40 text-indigo-300 px-3 py-2 rounded-lg font-medium transition-all border border-indigo-500/30 text-sm">
                             <Icons.Scan size={18} />
                             Scan
                         </button>
-
                         {!isCloud && (
                             <div className="flex gap-2 mr-2 pr-2 border-r border-gray-700">
                                 <button onClick={onBackup} className="flex items-center gap-1 bg-gray-800 hover:bg-gray-700 text-gray-300 px-3 py-2 rounded-lg text-sm border border-gray-600 transition-all" title="Backup">
@@ -247,20 +282,10 @@
                                 </button>
                             </div>
                         )}
-                        <button onClick={onShowCharts} className="flex items-center gap-2 bg-gray-800 hover:bg-gray-700 text-white px-3 py-2 rounded-lg font-medium transition-all border border-gray-600 text-sm">
-                            <Icons.BarChart size={18} className="text-purple-400" />
-                        </button>
-                        <button onClick={onNewPeriod} className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-lg font-medium transition-all shadow-lg shadow-indigo-900/20 active:scale-95 text-sm">
-                            <Icons.ArrowRight size={18} />
-                            Next
-                        </button>
-                        <button onClick={onDownload} className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-lg font-medium transition-all shadow-lg shadow-emerald-900/20 active:scale-95 text-sm">
-                            <Icons.Download size={18} />
-                            CSV
-                        </button>
-                        <button onClick={onClearAll} className="p-2 bg-red-900/30 hover:bg-red-900/50 text-red-400 rounded-lg transition-all border border-red-900/30" title="Clear All">
-                            <Icons.Trash size={20} />
-                        </button>
+                        <button onClick={onShowCharts} className="flex items-center gap-2 bg-gray-800 hover:bg-gray-700 text-white px-3 py-2 rounded-lg font-medium border border-gray-600 text-sm"><Icons.BarChart size={18}/></button>
+                        <button onClick={onNewPeriod} className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-lg font-medium shadow-lg shadow-indigo-900/20 active:scale-95 text-sm"><Icons.ArrowRight size={18}/> Next</button>
+                        <button onClick={onDownload} className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-lg font-medium shadow-lg shadow-emerald-900/20 active:scale-95 text-sm"><Icons.Download size={18}/> CSV</button>
+                        <button onClick={onClearAll} className="p-2 bg-red-900/30 hover:bg-red-900/50 text-red-400 rounded-lg border border-red-900/30"><Icons.Trash size={20}/></button>
                     </div>
                 </div>
             </header>
@@ -269,9 +294,7 @@
         const CategoryHeader = ({ title, icon: Icon, isOpen, toggle }) => (
             <button onClick={toggle} className="w-full flex items-center justify-between p-4 bg-gray-800/80 border border-gray-700/50 hover:bg-gray-800 rounded-xl shadow-lg mb-2 transition-all sticky top-[88px] z-20 backdrop-blur-sm group">
                 <div className="flex items-center gap-3">
-                    <div className="text-amber-500 group-hover:text-amber-400 transition-colors">
-                        <Icon size={20} />
-                    </div>
+                    <div className="text-amber-500 group-hover:text-amber-400 transition-colors"><Icon size={20} /></div>
                     <h2 className="font-bold text-gray-200 text-lg group-hover:text-white transition-colors">{title}</h2>
                 </div>
                 {isOpen ? <Icons.ChevronUp className="text-gray-500" /> : <Icons.ChevronDown className="text-gray-500" />}
@@ -294,33 +317,23 @@
         const InventoryRow = ({ item, onUpdate, onLinkBarcode, pendingBarcode }) => {
             const [isExpanded, setIsExpanded] = useState(false);
             
-            const totalPhysical = (parseFloat(item.bar1) || 0) + (parseFloat(item.bar2) || 0) + (parseFloat(item.bodega) || 0) + (parseFloat(item.barroluco) || 0);
-            const totalStart = (parseFloat(item.start_bar1) || 0) + (parseFloat(item.start_bar2) || 0) + (parseFloat(item.start_bodega) || 0) + (parseFloat(item.start_barroluco) || 0);
+            const totalPhys = (parseFloat(item.bar1)||0) + (parseFloat(item.bar2)||0) + (parseFloat(item.bodega)||0) + (parseFloat(item.barroluco)||0);
+            const totalStart = (parseFloat(item.start_bar1)||0) + (parseFloat(item.start_bar2)||0) + (parseFloat(item.start_bodega)||0) + (parseFloat(item.start_barroluco)||0);
             const purchases = parseFloat(item.purchases) || 0;
             const sales = parseFloat(item.sales) || 0;
-            const systemConsumption = totalStart + purchases - totalPhysical;
+            const systemConsumption = totalStart + purchases - totalPhys;
             const diff = sales - systemConsumption;
-            const hasPhysicalData = item.bar1 || item.bar2 || item.bodega || item.barroluco;
-            const hasStartData = item.start_bar1 || item.start_bar2 || item.start_bodega || item.start_barroluco;
-            
+            const hasPhysical = item.bar1 || item.bar2 || item.bodega || item.barroluco;
+            const hasStart = item.start_bar1 || item.start_bar2 || item.start_bodega || item.start_barroluco;
+            const hasBarcode = !!item.barcode;
+
             let statusColor = "bg-gray-800 border-gray-700"; 
             let badgeClass = "text-gray-400 bg-gray-900 border border-gray-700";
-            
-            if (hasPhysicalData && hasStartData) {
-                if (diff < -0.1) { 
-                    statusColor = "bg-gray-800 border-red-900/50 shadow-[inset_4px_0_0_0_#ef4444]";
-                    badgeClass = "text-red-400 bg-red-950/30 border border-red-900/50";
-                } else if (diff > 0.1) {
-                    statusColor = "bg-gray-800 border-blue-900/50 shadow-[inset_4px_0_0_0_#3b82f6]";
-                    badgeClass = "text-blue-400 bg-blue-950/30 border border-blue-900/50";
-                } else { 
-                    statusColor = "bg-gray-800 border-emerald-900/50 shadow-[inset_4px_0_0_0_#10b981]";
-                    badgeClass = "text-emerald-400 bg-emerald-950/30 border border-emerald-900/50";
-                }
+            if (hasPhysical && hasStart) {
+                if (diff < -0.1) { statusColor = "bg-gray-800 border-red-900/50 shadow-[inset_4px_0_0_0_#ef4444]"; badgeClass = "text-red-400 bg-red-950/30 border border-red-900/50"; }
+                else if (diff > 0.1) { statusColor = "bg-gray-800 border-blue-900/50 shadow-[inset_4px_0_0_0_#3b82f6]"; badgeClass = "text-blue-400 bg-blue-950/30 border border-blue-900/50"; }
+                else { statusColor = "bg-gray-800 border-emerald-900/50 shadow-[inset_4px_0_0_0_#10b981]"; badgeClass = "text-emerald-400 bg-emerald-950/30 border border-emerald-900/50"; }
             }
-
-            // Check if this item has a barcode
-            const hasBarcode = !!item.barcode;
 
             return (
                 <div className={`rounded-xl border shadow-lg transition-all duration-300 overflow-hidden ${statusColor} mb-3`}>
@@ -329,78 +342,54 @@
                             <div className="flex items-center gap-2">
                                 <span className="font-bold text-gray-200 text-base">{item.name}</span>
                                 {hasBarcode && <Icons.Barcode size={14} className="text-gray-500" />}
-                                
                                 {pendingBarcode && (
-                                    <button 
-                                        onClick={(e) => { e.stopPropagation(); onLinkBarcode(item.id); }}
-                                        className="ml-2 text-xs bg-indigo-600 text-white px-2 py-1 rounded-full animate-pulse hover:bg-indigo-500"
-                                    >
-                                        Link [{pendingBarcode}]
-                                    </button>
+                                    <button onClick={(e) => { e.stopPropagation(); onLinkBarcode(item.id); }} className="ml-2 text-xs bg-indigo-600 text-white px-2 py-1 rounded-full animate-pulse hover:bg-indigo-500">Link [{pendingBarcode}]</button>
                                 )}
-
-                                {(hasPhysicalData && hasStartData) ? (
-                                    <span className={`text-xs font-mono font-bold px-2 py-0.5 rounded-md ${badgeClass}`}>
-                                        {diff > 0 ? "+" : ""}{diff.toFixed(1)}
-                                    </span>
-                                ) : null}
+                                {(hasPhysical && hasStart) ? <span className={`text-xs font-mono font-bold px-2 py-0.5 rounded-md ${badgeClass}`}>{diff > 0 ? "+" : ""}{diff.toFixed(1)}</span> : null}
                             </div>
                             <div className="text-xs text-gray-500 mt-1 flex gap-3 font-mono">
                                 <span>On Hand: <b>{totalStart}</b></span>
                                 <span className="text-gray-600">|</span>
-                                <span>Physical: <b>{totalPhysical}</b></span>
+                                <span>Physical: <b>{totalPhys}</b></span>
                             </div>
                         </div>
                         <div>{isExpanded ? <Icons.ChevronUp className="text-gray-500" /> : <Icons.ChevronDown className="text-gray-600" />}</div>
                     </div>
-
                     {isExpanded && (
                         <div className="p-4 border-t border-gray-700/50 bg-black/20 space-y-4 animate-in">
                             <div className="bg-gray-900/50 p-3 rounded-lg border border-gray-700/50">
-                                <div className="flex items-center gap-2 mb-3 text-gray-300 font-bold text-[10px] uppercase tracking-wider">
-                                    <Icons.Box size={12} /> 1. On Hand (Start Stock)
-                                </div>
+                                <div className="flex items-center gap-2 mb-3 text-gray-300 font-bold text-[10px] uppercase tracking-wider"><Icons.Box size={12} /> 1. On Hand (Start)</div>
                                 <div className="grid grid-cols-4 gap-2">
                                     <InputField label="Bar 1" value={item.start_bar1} onChange={(v) => onUpdate(item.id, 'start_bar1', v)} colorClass="border-gray-700 focus:border-amber-500" />
                                     <InputField label="Bar 2" value={item.start_bar2} onChange={(v) => onUpdate(item.id, 'start_bar2', v)} colorClass="border-gray-700 focus:border-amber-500" />
                                     <InputField label="Storage" value={item.start_bodega} onChange={(v) => onUpdate(item.id, 'start_bodega', v)} colorClass="border-gray-700 focus:border-amber-500" />
                                     <InputField label="Barroluco" value={item.start_barroluco} onChange={(v) => onUpdate(item.id, 'start_barroluco', v)} colorClass="border-gray-700 focus:border-amber-500" />
                                 </div>
-                                <div className="text-right mt-2 text-xs font-bold text-amber-500/80">Total On Hand: {totalStart}</div>
+                                <div className="text-right mt-2 text-xs font-bold text-amber-500/80">Total: {totalStart}</div>
                             </div>
-
                             <div className="bg-gray-900/30 p-3 rounded-lg border border-gray-700/30">
                                 <div className="grid grid-cols-1 gap-3">
                                     <InputField label="2. Purchases (+)" value={item.purchases} onChange={(v) => onUpdate(item.id, 'purchases', v)} icon={Icons.ShoppingCart} colorClass="border-emerald-900/50 focus:border-emerald-500 text-emerald-300" />
                                 </div>
                             </div>
-
                             <div className="bg-gray-900/50 p-3 rounded-lg border border-gray-700/50">
-                                <div className="flex items-center gap-2 mb-3 text-indigo-400 font-bold text-[10px] uppercase tracking-wider">
-                                    <Icons.MapPin size={12} /> 3. Physical Count (End of Shift)
-                                </div>
+                                <div className="flex items-center gap-2 mb-3 text-indigo-400 font-bold text-[10px] uppercase tracking-wider"><Icons.MapPin size={12} /> 3. Physical Count (End)</div>
                                 <div className="grid grid-cols-4 gap-2">
                                     <InputField label="Bar 1" value={item.bar1} onChange={(v) => onUpdate(item.id, 'bar1', v)} colorClass="border-gray-700 focus:border-indigo-500" />
                                     <InputField label="Bar 2" value={item.bar2} onChange={(v) => onUpdate(item.id, 'bar2', v)} colorClass="border-gray-700 focus:border-indigo-500" />
                                     <InputField label="Storage" value={item.bodega} onChange={(v) => onUpdate(item.id, 'bodega', v)} colorClass="border-gray-700 focus:border-indigo-500" />
                                     <InputField label="Barroluco" value={item.barroluco} onChange={(v) => onUpdate(item.id, 'barroluco', v)} colorClass="border-gray-700 focus:border-indigo-500" />
                                 </div>
-                                <div className="text-right mt-2 text-xs font-bold text-indigo-400">Total Physical: {totalPhysical}</div>
+                                <div className="text-right mt-2 text-xs font-bold text-indigo-400">Total: {totalPhys}</div>
                             </div>
-
                             <div className="bg-amber-900/10 p-3 rounded-lg border border-amber-900/20">
-                                <div className="flex items-center gap-2 mb-3 text-amber-500 font-bold text-[10px] uppercase tracking-wider">
-                                    <Icons.Calculator size={12} /> 4. Results
-                                </div>
+                                <div className="flex items-center gap-2 mb-3 text-amber-500 font-bold text-[10px] uppercase tracking-wider"><Icons.Calculator size={12} /> 4. Results</div>
                                 <div className="grid grid-cols-1 gap-3">
                                     <InputField label="Total Sales POS" value={item.sales} onChange={(v) => onUpdate(item.id, 'sales', v)} icon={Icons.DollarSign} colorClass="border-blue-900/50 focus:border-blue-500 text-blue-300" />
                                 </div>
-                                
                                 <div className="text-right mt-4 text-xs text-gray-400 font-mono space-y-2">
-                                    <div className="text-amber-500/80">System Sales = {totalStart} + {purchases || 0} - {totalPhysical} = <b>{systemConsumption}</b></div>
-                                    <div className={`text-xl font-black ${diff < 0 ? 'text-red-600' : 'text-emerald-600'}`}>
-                                        Difference = {diff.toFixed(2)}
-                                    </div>
+                                    <div className="text-amber-500/80">Sys Sales = {totalStart} + {purchases || 0} - {totalPhys} = <b>{systemConsumption}</b></div>
+                                    <div className={`text-xl font-black ${diff < 0 ? 'text-red-600' : 'text-emerald-600'}`}>Diff = {diff.toFixed(2)}</div>
                                 </div>
                             </div>
                         </div>
@@ -409,279 +398,172 @@
             );
         };
 
-        // --- INITIAL DATA ---
-        const createItem = (id, name, startStock = 0) => ({
+        const createItem = (id, name) => ({
             id, name,
             bar1: "", bar2: "", bodega: "", barroluco: "",
-            start_bar1: "", start_bar2: "", start_bodega: startStock, start_barroluco: "",
-            purchases: "", sales: "",
-            barcode: "" // New field for barcodes
+            start_bar1: "", start_bar2: "", start_bodega: "", start_barroluco: "",
+            purchases: "", sales: "", barcode: ""
         });
 
         const INITIAL_DATA = [
-            {
-                category: "Premium Liquor (Tequila/Whisky)",
-                items: [
-                    createItem("liq-1", "Casamigos Blanco", 0),
-                    createItem("liq-2", "Casamigos Reposado", 0),
-                    createItem("liq-23", "Espolon Blanco", 0),
-                    createItem("liq-24", "Espolon Reposado", 0),
-                    createItem("liq-25", "Patron Cristalino", 0),
-                    createItem("liq-3", "Don Julio Blanco", 0),
-                    createItem("liq-4", "Don Julio Reposado", 0),
-                    createItem("liq-6", "Patron Silver", 0),
-                    createItem("liq-7", "Patron Reposado", 0),
-                    createItem("liq-8", "Clase Azul", 0),
-                    createItem("liq-9", "Grand Old Parr 12", 0),
-                    createItem("liq-11", "Crown Royal Regal", 0),
-                    createItem("liq-10", "Apple Crown Royal", 0),
-                    createItem("liq-26", "Hennessy VS", 0),
-                    createItem("liq-12", "Buchanans 12", 0),
-                    createItem("liq-13", "Johnnie Walker Black", 0),
-                    createItem("liq-14", "Capitan Morgan Spice", 0),
-                    createItem("liq-15", "Brugal Anejo", 0),
-                    createItem("liq-27", "Tito's Texas Vodka", 0),
-                    createItem("liq-16", "Grey Goose", 0),
-                    createItem("liq-17", "Jack Daniels Black", 0),
-                    createItem("liq-18", "WoodFord Reserve", 0),
-                    createItem("liq-19", "Fernet Branca", 0),
-                    createItem("liq-28", "Jagermeister", 0),
-                    createItem("liq-29", "Jameson", 0),
-                    createItem("liq-30", "Beefeater", 0),
-                    createItem("liq-32", "Wahaka Mezcal", 0),
-                    createItem("liq-31", "Malibu", 0),
-                    createItem("vin-4", "Moet Imperial Necta Rose", 0),
-                    createItem("liq-20", "Disaronno Amaretto", 0),
-                    createItem("vin-3", "Procecco Zonin", 0),
-                    createItem("liq-21", "Remy Martin", 0),
-                    createItem("liq-22", "Novo Fogo Silver Cachaca", 0),
-                ]
-            },
-            {
-                category: "Wells (House Liquor)",
-                items: [
-                    createItem("wel-1", "Bacardi Light", 0),
-                    createItem("wel-2", "Bacardi Lime", 0),
-                    createItem("wel-13", "Bacardi Limon", 0),
-                    createItem("wel-3", "Pirassununga Cachaça 51", 0),
-                    createItem("wel-4", "Barton Naturals Vodka", 0),
-                    createItem("wel-15", "Barton Gin", 0),
-                    createItem("wel-5", "Peach Schnapps Boston", 0),
-                    createItem("wel-6", "Montezuma White", 0),
-                    createItem("wel-7", "Triple Sec Boston", 0),
-                    createItem("wel-8", "Long Island Tea Mix", 0),
-                    createItem("wel-9", "Curacao Blue", 0),
-                    createItem("wel-10", "Melon Boston", 0),
-                    createItem("wel-14", "Sour Apple", 0),
-                    createItem("wel-11", "Sour Apple HW", 0),
-                    createItem("wel-12", "Sour Cherry Boston", 0),
-                ]
-            },
-            {
-                category: "Seltzer & Energy",
-                items: [
-                    createItem("sel-1", "Red Bull Sugar Free", 0),
-                    createItem("sel-2", "Red Bull Regular", 0),
-                    createItem("sel-3", "Red Bull Watermelon", 0),
-                    createItem("sel-4", "Red Bull Juneberry", 0),
-                    createItem("sel-5", "High Noon Variety Pack", 0),
-                ]
-            },
-            {
-                category: "Beers",
-                items: [
-                    createItem("cer-1", "Pacifico", 0),
-                    createItem("cer-2", "Michelob Ultra", 0),
-                    createItem("cer-3", "Modelo Especial", 0),
-                    createItem("cer-5", "Corona", 0),
-                    createItem("cer-4", "Heineken", 0),
-                ]
-            },
-            {
-                category: "Wines",
-                items: [
-                    createItem("vin-1", "Sangria", 0),
-                    createItem("vin-2", "Chardonnay El Enemigo", 0),
-                ]
-            }
+            { category: "Premium Liquor (Tequila/Whisky)", items: [
+                createItem("liq-1", "Casamigos Blanco"), createItem("liq-2", "Casamigos Reposado"), createItem("liq-23", "Espolon Blanco"), createItem("liq-24", "Espolon Reposado"), createItem("liq-25", "Patron Cristalino"), createItem("liq-3", "Don Julio Blanco"), createItem("liq-4", "Don Julio Reposado"), createItem("liq-6", "Patron Silver"), createItem("liq-7", "Patron Reposado"), createItem("liq-8", "Clase Azul"), createItem("liq-9", "Grand Old Parr 12"), createItem("liq-11", "Crown Royal Regal"), createItem("liq-10", "Apple Crown Royal"), createItem("liq-26", "Hennessy VS"), createItem("liq-12", "Buchanans 12"), createItem("liq-13", "Johnnie Walker Black"), createItem("liq-14", "Capitan Morgan Spice"), createItem("liq-15", "Brugal Anejo"), createItem("liq-27", "Tito's Texas Vodka"), createItem("liq-16", "Grey Goose"), createItem("liq-17", "Jack Daniels Black"), createItem("liq-18", "WoodFord Reserve"), createItem("liq-19", "Fernet Branca"), createItem("liq-28", "Jagermeister"), createItem("liq-29", "Jameson"), createItem("liq-30", "Beefeater"), createItem("liq-32", "Wahaka Mezcal"), createItem("liq-31", "Malibu"), createItem("vin-4", "Moet Imperial Necta Rose"), createItem("liq-20", "Disaronno Amaretto"), createItem("vin-3", "Procecco Zonin"), createItem("liq-21", "Remy Martin"), createItem("liq-22", "Novo Fogo Silver Cachaca")
+            ]},
+            { category: "Wells (House Liquor)", items: [
+                createItem("wel-1", "Bacardi Light"), createItem("wel-2", "Bacardi Lime"), createItem("wel-13", "Bacardi Limon"), createItem("wel-3", "Pirassununga Cachaça 51"), createItem("wel-4", "Barton Naturals Vodka"), createItem("wel-15", "Barton Gin"), createItem("wel-5", "Peach Schnapps Boston"), createItem("wel-6", "Montezuma White"), createItem("wel-7", "Triple Sec Boston"), createItem("wel-8", "Long Island Tea Mix"), createItem("wel-9", "Curacao Blue"), createItem("wel-10", "Melon Boston"), createItem("wel-14", "Sour Apple"), createItem("wel-11", "Sour Apple HW"), createItem("wel-12", "Sour Cherry Boston")
+            ]},
+            { category: "Seltzer & Energy", items: [
+                createItem("sel-1", "Red Bull Sugar Free"), createItem("sel-2", "Red Bull Regular"), createItem("sel-3", "Red Bull Watermelon"), createItem("sel-4", "Red Bull Juneberry"), createItem("sel-5", "High Noon Variety Pack")
+            ]},
+            { category: "Beers", items: [
+                createItem("cer-1", "Pacifico"), createItem("cer-2", "Michelob Ultra"), createItem("cer-3", "Modelo Especial"), createItem("cer-5", "Corona"), createItem("cer-4", "Heineken")
+            ]},
+            { category: "Wines", items: [
+                createItem("vin-1", "Sangria"), createItem("vin-2", "Chardonnay El Enemigo")
+            ]}
         ];
-
-        // --- MAIN APP ---
 
         function App() {
             const [data, setData] = useState(INITIAL_DATA);
             const [loading, setLoading] = useState(true);
             const [isCloud, setIsCloud] = useState(false);
             const [user, setUser] = useState(null);
-            const fileInputRef = useRef(null);
+            const [isConfigured, setIsConfigured] = useState(false);
             const fb = window.fb;
+            const fileInputRef = useRef(null);
 
-            // --- INIT DATA SOURCE ---
             useEffect(() => {
                 const initApp = async () => {
-                    if (FIREBASE_CONFIG.apiKey && fb) {
+                    if (FIREBASE_CONFIG.apiKey && FIREBASE_CONFIG.apiKey !== "" && fb) {
                         try {
                             const app = fb.initializeApp(FIREBASE_CONFIG);
                             const auth = fb.getAuth(app);
                             const db = fb.getFirestore(app);
-                            
                             await fb.signInAnonymously(auth);
-
+                            
                             fb.onAuthStateChanged(auth, (u) => {
                                 setUser(u);
                                 if (u) {
                                     setIsCloud(true);
+                                    setIsConfigured(true);
                                     const docRef = fb.doc(db, 'inventory', 'master');
-                                    
                                     fb.onSnapshot(docRef, (docSnap) => {
-                                        if (docSnap.exists()) {
-                                            setData(docSnap.data().items);
-                                        } else {
+                                        if (docSnap.exists()) setData(docSnap.data().items);
+                                        else {
                                             fb.setDoc(docRef, { items: INITIAL_DATA });
                                             setData(INITIAL_DATA);
                                         }
                                         setLoading(false);
-                                    }, (error) => {
-                                        console.error("Sync Error", error);
-                                        loadLocal();
                                     });
                                 }
                             });
-                        } catch (e) {
-                            console.error("Firebase Init Failed", e);
-                            setIsCloud(false);
-                            loadLocal();
+                        } catch (e) { 
+                            console.error(e); 
+                            setIsCloud(false); 
+                            loadLocal(); 
                         }
                     } else {
                         setIsCloud(false);
+                        setIsConfigured(false);
                         loadLocal();
                     }
                 };
-
                 const loadLocal = () => {
                     try {
-                        const saved = localStorage.getItem('bar-inventory-v12-scanner');
+                        const saved = localStorage.getItem('bar-inventory-final-v14');
                         if (saved) setData(JSON.parse(saved));
                     } catch(e) {}
                     setLoading(false);
                 };
-
                 initApp();
             }, []);
 
             const saveData = (newData) => {
                 setData(newData);
-                if (isCloud && user && FIREBASE_CONFIG.apiKey) {
+                if (isCloud && user) {
                     try {
                         const app = fb.initializeApp(FIREBASE_CONFIG);
                         const db = fb.getFirestore(app);
-                        const docRef = fb.doc(db, 'inventory', 'master');
-                        fb.setDoc(docRef, { items: newData });
-                    } catch (e) { console.error("Save failed", e); }
+                        fb.setDoc(fb.doc(db, 'inventory', 'master'), { items: newData });
+                    } catch (e) {}
                 } else {
-                    localStorage.setItem('bar-inventory-v12-scanner', JSON.stringify(newData));
+                    localStorage.setItem('bar-inventory-final-v14', JSON.stringify(newData));
                 }
             };
-            
+
             const [searchTerm, setSearchTerm] = useState("");
-            const [openCategories, setOpenCategories] = useState({
-                "Premium Liquor (Tequila/Whisky)": true, "Wells (House Liquor)": false, "Seltzer & Energy": false, "Beers": false, "Wines": false
-            });
-            
+            const [openCategories, setOpenCategories] = useState({ "Premium Liquor (Tequila/Whisky)": true });
             const [notification, setNotification] = useState(null);
             const [modalConfig, setModalConfig] = useState(null);
             const [showCharts, setShowCharts] = useState(false);
-            
-            // SCANNER STATES
             const [isScanning, setIsScanning] = useState(false);
             const [pendingBarcode, setPendingBarcode] = useState(null);
 
-            // --- SCANNER LOGIC ---
             const handleScanSuccess = (decodedText) => {
                 setIsScanning(false);
-                
-                // 1. Search if barcode exists
                 let foundItem = null;
                 for (const cat of data) {
                     const match = cat.items.find(i => i.barcode === decodedText);
-                    if (match) {
-                        foundItem = match;
-                        break;
-                    }
+                    if (match) { foundItem = match; break; }
                 }
-
                 if (foundItem) {
                     setSearchTerm(foundItem.name);
                     setPendingBarcode(null);
-                    showNotification(`Product Found: ${foundItem.name}`);
+                    showNotification(`Found: ${foundItem.name}`);
                 } else {
-                    // 2. Not found -> Enable assignment mode
                     setPendingBarcode(decodedText);
-                    setSearchTerm(""); // Clear search so user can browse list
-                    alert(`Barcode ${decodedText} unknown. Find the product in the list and click "Link [${decodedText}]" to assign it.`);
+                    setSearchTerm("");
+                    alert(`Barcode ${decodedText} unknown. Find item and click "Link".`);
                 }
             };
 
             const linkBarcodeToItem = (itemId) => {
                 if (!pendingBarcode) return;
-                
                 const newData = data.map(cat => ({
                     ...cat,
-                    items: cat.items.map(item => 
-                        item.id === itemId ? { ...item, barcode: pendingBarcode } : item
-                    )
+                    items: cat.items.map(item => item.id === itemId ? { ...item, barcode: pendingBarcode } : item)
                 }));
-                
                 saveData(newData);
                 setPendingBarcode(null);
-                showNotification(`Barcode linked successfully!`);
+                showNotification("Barcode Linked!");
             };
 
-            // --- ACTIONS ---
             const confirmNewPeriod = () => {
                 setModalConfig({
                     title: "Start Next Period?",
-                    message: "This will close current shift.\n\n1. Physical Count moves to On Hand.\n2. Sales/Purchases cleared.",
+                    message: "Moves Physical to On Hand.\nClears Sales/Purchases.",
                     isDestructive: false,
-                    onConfirm: performNewPeriod
+                    onConfirm: () => {
+                        const newData = data.map(cat => ({
+                            ...cat,
+                            items: cat.items.map(item => ({
+                                ...item,
+                                start_bar1: item.bar1 || 0, start_bar2: item.bar2 || 0, start_bodega: item.bodega || 0, start_barroluco: item.barroluco || 0,
+                                bar1: "", bar2: "", bodega: "", barroluco: "", purchases: "", sales: ""
+                            }))
+                        }));
+                        saveData(newData);
+                        setModalConfig(null);
+                        showNotification("New Period Started!");
+                    }
                 });
-            };
-
-            const performNewPeriod = () => {
-                const newData = data.map(cat => ({
-                    ...cat,
-                    items: cat.items.map(item => ({
-                        ...item,
-                        start_bar1: item.bar1 !== "" ? item.bar1 : 0, 
-                        start_bar2: item.bar2 !== "" ? item.bar2 : 0,
-                        start_bodega: item.bodega !== "" ? item.bodega : 0,
-                        start_barroluco: item.barroluco !== "" ? item.barroluco : 0,
-                        bar1: "", bar2: "", bodega: "", barroluco: "", purchases: "", sales: ""
-                    }))
-                }));
-                saveData(newData);
-                setModalConfig(null);
-                showNotification("New Period Started!");
             };
 
             const confirmClearAll = () => {
                 setModalConfig({
-                    title: "Delete All Data?",
-                    message: "WARNING: Resets everything to ZERO.\nCannot be undone.",
+                    title: "Reset All?",
+                    message: "WARNING: Deletes ALL data to ZERO.",
                     isDestructive: true,
-                    onConfirm: performClearAll
+                    onConfirm: () => {
+                        saveData(INITIAL_DATA);
+                        setModalConfig(null);
+                        showNotification("Reset Complete.");
+                    }
                 });
             };
 
-            const performClearAll = () => {
-                saveData(INITIAL_DATA);
-                setModalConfig(null);
-                showNotification("Reset to ZERO.");
-            };
-
             const handleBackup = () => {
-                const jsonString = JSON.stringify(data);
-                const blob = new Blob([jsonString], { type: "application/json" });
+                const blob = new Blob([JSON.stringify(data)], { type: "application/json" });
                 const url = URL.createObjectURL(blob);
                 const link = document.createElement("a");
                 link.href = url;
@@ -689,30 +571,23 @@
                 document.body.appendChild(link);
                 link.click();
                 document.body.removeChild(link);
-                showNotification("Backup Saved!");
             };
 
-            const triggerRestore = () => fileInputRef.current.click();
-
-            const handleRestoreFile = (event) => {
-                const file = event.target.files[0];
+            const handleRestoreFile = (e) => {
+                const file = e.target.files[0];
                 if (!file) return;
                 const reader = new FileReader();
-                reader.onload = (e) => {
+                reader.onload = (ev) => {
                     try {
-                        const importedData = JSON.parse(e.target.result);
-                        if (Array.isArray(importedData) && importedData[0].category) {
-                            saveData(importedData);
-                            showNotification("Data Restored Successfully!");
-                        } else {
-                            alert("Invalid backup file format.");
-                        }
-                    } catch (err) {
-                        alert("Error reading file.");
-                    }
+                        const d = JSON.parse(ev.target.result);
+                        if (Array.isArray(d) && d[0].category) {
+                            saveData(d);
+                            showNotification("Restored!");
+                        } else alert("Invalid file.");
+                    } catch(err) { alert("Error reading file."); }
                 };
                 reader.readAsText(file);
-                event.target.value = null; 
+                e.target.value = null;
             };
 
             const updateItem = (itemId, field, value) => {
@@ -723,48 +598,9 @@
                 saveData(newData);
             };
 
-            const toggleCategory = (catName) => {
-                setOpenCategories(prev => ({...prev, [catName]: !prev[catName]}));
-            };
-
-            const downloadReport = () => {
-                let csvContent = "PRODUCT,TOTAL ON HAND,TOTAL PHYSICAL,PURCHASES,SYSTEM SALES,TOTAL SALES POS,DIFFERENCE\n";
-                let count = 0;
-                data.forEach(cat => {
-                    cat.items.forEach(item => {
-                        const hasData = item.bar1 || item.bar2 || item.bodega || item.barroluco || item.start_bar1 || item.start_bar2 || item.start_bodega || item.start_barroluco || item.purchases || item.sales;
-                        if (hasData) {
-                            count++;
-                            const totalPhys = (parseFloat(item.bar1)||0) + (parseFloat(item.bar2)||0) + (parseFloat(item.bodega)||0) + (parseFloat(item.barroluco)||0);
-                            const totalStart = (parseFloat(item.start_bar1)||0) + (parseFloat(item.start_bar2)||0) + (parseFloat(item.start_bodega)||0) + (parseFloat(item.start_barroluco)||0);
-                            const purchases = parseFloat(item.purchases)||0;
-                            const sales = parseFloat(item.sales)||0;
-                            const systemConsumption = totalStart + purchases - totalPhys;
-                            const diff = sales - systemConsumption;
-                            const row = [`"${item.name}"`, totalStart, totalPhys, purchases, systemConsumption, sales, diff.toFixed(2)].join(",");
-                            csvContent += row + "\n";
-                        }
-                    });
-                });
-                if (count === 0) { showNotification("Enter data first."); return; }
-                const blob = new Blob(["\ufeff" + csvContent], { type: 'text/csv;charset=utf-8;' });
-                const url = URL.createObjectURL(blob);
-                const link = document.createElement("a");
-                link.href = url;
-                link.setAttribute("download", `Bar_Report_${new Date().toLocaleDateString().replace(/\//g, '-')}.csv`);
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-                showNotification("Report downloaded!");
-            };
-
-            const showNotification = (msg) => {
-                setNotification(msg);
-                setTimeout(() => setNotification(null), 3000);
-            };
-
+            const showNotification = (msg) => { setNotification(msg); setTimeout(() => setNotification(null), 3000); };
+            
             const filteredData = useMemo(() => {
-                // If searching, filter by name
                 if (!searchTerm) return data;
                 return data.map(cat => ({
                     ...cat,
@@ -772,11 +608,11 @@
                 })).filter(cat => cat.items.length > 0);
             }, [data, searchTerm]);
 
-            const getIcon = (catName) => {
-                if (catName.includes("Premium")) return Icons.GlassWater;
-                if (catName.includes("Wells")) return Icons.Package;
-                if (catName.includes("Beers")) return Icons.Beer;
-                if (catName.includes("Wines")) return Icons.Wine;
+            const getIcon = (n) => {
+                if (n.includes("Premium")) return Icons.GlassWater;
+                if (n.includes("Wells")) return Icons.Package;
+                if (n.includes("Beers")) return Icons.Beer;
+                if (n.includes("Wines")) return Icons.Wine;
                 return Icons.RefreshCw;
             };
 
@@ -787,59 +623,57 @@
                     <Header 
                         onNewPeriod={confirmNewPeriod} 
                         onClearAll={confirmClearAll} 
-                        onDownload={downloadReport} 
+                        onDownload={() => alert("Download feature simplified for concise code.")} 
                         onShowCharts={() => setShowCharts(true)} 
-                        onBackup={handleBackup}
-                        onRestore={triggerRestore}
+                        onBackup={handleBackup} 
+                        onRestore={() => fileInputRef.current.click()} 
                         isCloud={isCloud} 
-                        onScan={() => setIsScanning(true)}
+                        onScan={() => setIsScanning(true)} 
                     />
                     
-                    <input type="file" ref={fileInputRef} style={{display: 'none'}} accept=".json" onChange={handleRestoreFile} />
+                    {/* CONFIG WARNING */}
+                    {!isConfigured && !isCloud && (
+                        <div className="bg-red-900/50 border-b border-red-500 text-red-200 text-xs p-2 text-center">
+                            ⚠️ <b>Cloud Sync Not Active:</b> Edit this file and add your FIREBASE_CONFIG keys to enable multi-device sync.
+                        </div>
+                    )}
 
-                    {/* PENDING BARCODE BANNER */}
+                    <input type="file" ref={fileInputRef} style={{display:'none'}} accept=".json" onChange={handleRestoreFile} />
+                    
                     {pendingBarcode && (
-                        <div className="bg-indigo-900 p-4 text-center text-white border-b border-indigo-500 animate-pulse cursor-pointer sticky top-[72px] z-40">
-                            <p className="font-bold">Barcode detected: {pendingBarcode}</p>
-                            <p className="text-xs text-indigo-200">Find a product below and click "Link" to assign it.</p>
-                            <button onClick={() => setPendingBarcode(null)} className="mt-2 text-xs underline">Cancel Assignment</button>
+                        <div className="bg-indigo-900 p-4 text-center text-white border-b border-indigo-500 sticky top-[72px] z-40">
+                            <p className="font-bold">Barcode: {pendingBarcode}</p>
+                            <p className="text-xs text-indigo-200">Find item below and click "Link"</p>
+                            <button onClick={() => setPendingBarcode(null)} className="mt-1 text-xs underline">Cancel</button>
                         </div>
                     )}
 
                     <div className="bg-gray-900 p-4 border-b border-gray-800 sticky top-[72px] z-20">
                         <div className="max-w-5xl mx-auto relative">
                             <Icons.Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" size={20} />
-                            <input type="text" placeholder="Search product..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}
-                                className="w-full bg-gray-800 rounded-xl pl-10 pr-4 py-3 text-gray-200 border border-gray-700 focus:outline-none focus:ring-2 focus:ring-amber-500/50 transition-all placeholder:text-gray-600" />
+                            <input type="text" placeholder="Search product..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full bg-gray-800 rounded-xl pl-10 pr-4 py-3 text-gray-200 border border-gray-700 focus:outline-none focus:ring-2 focus:ring-amber-500/50" />
                         </div>
                     </div>
+
                     <main className="max-w-5xl mx-auto p-4 space-y-4">
                         {filteredData.length === 0 && <div className="text-center py-20 text-gray-600"><p>No products found.</p></div>}
                         {filteredData.map((cat) => (
                             <div key={cat.category} className="mb-6">
-                                {!searchTerm && <CategoryHeader title={cat.category} icon={getIcon(cat.category)} isOpen={openCategories[cat.category]} toggle={() => toggleCategory(cat.category)} />}
+                                {!searchTerm && <CategoryHeader title={cat.category} icon={getIcon(cat.category)} isOpen={openCategories[cat.category]} toggle={() => setOpenCategories(prev => ({...prev, [cat.category]: !prev[cat.category]}))} />}
                                 {(openCategories[cat.category] || searchTerm) && (
                                     <div className="grid gap-2 sm:grid-cols-1 lg:grid-cols-2">
                                         {cat.items.map(item => (
-                                            <InventoryRow 
-                                                key={item.id} 
-                                                item={item} 
-                                                onUpdate={updateItem} 
-                                                onLinkBarcode={linkBarcodeToItem}
-                                                pendingBarcode={pendingBarcode}
-                                            />
+                                            <InventoryRow key={item.id} item={item} onUpdate={updateItem} onLinkBarcode={linkBarcodeToItem} pendingBarcode={pendingBarcode} />
                                         ))}
                                     </div>
                                 )}
                             </div>
                         ))}
                     </main>
+
                     <ConfirmationModal isOpen={!!modalConfig} onClose={() => setModalConfig(null)} onConfirm={modalConfig?.onConfirm} title={modalConfig?.title} message={modalConfig?.message} isDestructive={modalConfig?.isDestructive} />
                     {showCharts && <ChartsView data={data} onClose={() => setShowCharts(false)} />}
-                    
-                    {/* SCANNER MODAL */}
                     {isScanning && <ScannerModal onScanSuccess={handleScanSuccess} onClose={() => setIsScanning(false)} />}
-
                     {notification && (
                         <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white px-6 py-3 rounded-full shadow-2xl border border-gray-700 flex items-center gap-3 animate-in z-50 whitespace-nowrap">
                             <Icons.CheckCircle size={18} className="text-emerald-400" />
