@@ -327,6 +327,7 @@
                 } else {
                     // Liquor
                     const shotsInBottles = (s * 1.2) / bottleSizeOz;
+                    
                     // UPDATED: Comps are ALWAYS bottles for all liquor categories now.
                     const compsInBottles = c; 
                     
@@ -531,7 +532,7 @@
                 };
                 const loadLocal = () => {
                     try {
-                        const saved = localStorage.getItem('bar-inventory-final-v23');
+                        const saved = localStorage.getItem('bar-inventory-final-v24');
                         if (saved) setData(JSON.parse(saved));
                     } catch(e) {}
                     setLoading(false);
@@ -590,7 +591,7 @@
                         fb.setDoc(fb.doc(db, 'inventory', 'master'), { items: newData });
                     } catch (e) {}
                 } else {
-                    localStorage.setItem('bar-inventory-final-v23', JSON.stringify(newData));
+                    localStorage.setItem('bar-inventory-final-v24', JSON.stringify(newData));
                 }
             };
 
@@ -639,11 +640,27 @@
                     onConfirm: () => {
                         const newData = data.map(cat => ({
                             ...cat,
-                            items: cat.items.map(item => ({
-                                ...item,
-                                start_bar1: item.bar1 || 0, start_bar2: item.bar2 || 0, start_bodega: item.bodega || 0, start_barroluco: item.barroluco || 0,
-                                bar1: "", bar2: "", bodega: "", barroluco: "", purchases: "", sales: "", sold_bottles: "", sold_shots: "", sold_comps: ""
-                            }))
+                            items: cat.items.map(item => {
+                                // Parse current values
+                                const physBodega = parseFloat(item.bodega) || 0;
+                                const purchases = parseFloat(item.purchases) || 0;
+                                
+                                // Calculate next start bodega
+                                const nextStartBodega = physBodega + purchases;
+
+                                return {
+                                    ...item,
+                                    // Move physical -> start (except bodega which is phys + purchases)
+                                    start_bar1: item.bar1 !== "" ? item.bar1 : 0, 
+                                    start_bar2: item.bar2 !== "" ? item.bar2 : 0,
+                                    start_bodega: nextStartBodega,
+                                    start_barroluco: item.barroluco !== "" ? item.barroluco : 0,
+                                    
+                                    // Clear inputs
+                                    bar1: "", bar2: "", bodega: "", barroluco: "", 
+                                    purchases: "", sales: "", sold_bottles: "", sold_shots: "", sold_comps: ""
+                                };
+                            })
                         }));
                         saveData(newData);
                         setModalConfig(null);
