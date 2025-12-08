@@ -68,7 +68,7 @@
             constructor(props) { super(props); this.state = { hasError: false, error: null }; }
             static getDerivedStateFromError(error) { return { hasError: true, error }; }
             render() {
-                if (this.state.hasError) return <div className="p-10 text-center text-red-400">Application Error. Reload Page.</div>;
+                if (this.state.hasError) return <div className="p-10 text-center text-red-400">Application Error. Reload Page. <br/> {this.state.error?.toString()}</div>;
                 return this.props.children;
             }
         }
@@ -223,7 +223,8 @@
         };
 
         const Header = ({ onNewPeriod, onClearAll, onDownload, onShowCharts, onBackup, onRestore, isCloud, onScan }) => (
-            <header className="bg-slate-900 border-b border-slate-800 text-white p-4 sticky top-0 z-30 shadow-xl">
+            // Eliminamos 'sticky' y 'top-0' aquí porque ahora estará dentro de un contenedor fixed
+            <header className="bg-slate-900 border-b border-slate-800 text-white p-4 shadow-xl">
                 <div className="max-w-6xl mx-auto flex flex-col lg:flex-row justify-between items-center gap-4">
                     <div className="flex items-center gap-3 w-full lg:w-auto">
                         <div className="bg-indigo-600 p-2 rounded-xl text-white shadow-lg"><Icons.Beer size={24} /></div>
@@ -266,7 +267,9 @@
         );
 
         const CategoryHeader = ({ title, icon: Icon, isOpen, toggle }) => (
-            <button onClick={toggle} className="w-full flex items-center justify-between p-4 bg-slate-800 border border-slate-700 hover:bg-slate-700 rounded-xl shadow-lg mb-2 transition-all sticky top-[88px] z-20 group">
+            // Ajustamos el top del sticky para que quede debajo del contenedor fijo
+            // Header ~88px + Search ~74px = ~162px. Aumentado a 200px para evitar superposicion visual
+            <button onClick={toggle} className="w-full flex items-center justify-between p-4 bg-slate-800 border border-slate-700 hover:bg-slate-700 rounded-xl shadow-lg mb-2 transition-all sticky top-[200px] z-30 group">
                 <div className="flex items-center gap-3">
                     <div className="text-indigo-400 group-hover:text-indigo-300 transition-colors"><Icon size={20} /></div>
                     <h2 className="font-bold text-slate-200 text-lg group-hover:text-white transition-colors">{title}</h2>
@@ -325,10 +328,8 @@
                     const comps = c;
                     totalSales = cans + (buckets * 6) + comps;
                 } else {
-                    // Liquor
+                    // Liquor: Comps are ALWAYS bottles for all liquor categories now.
                     const shotsInBottles = (s * 1.2) / bottleSizeOz;
-                    
-                    // UPDATED: Comps are ALWAYS bottles for all liquor categories now.
                     const compsInBottles = c; 
                     
                     totalSales = b + shotsInBottles + compsInBottles;
@@ -357,7 +358,7 @@
             }
 
             return (
-                <div className={`rounded-xl border shadow-lg transition-all duration-300 overflow-hidden ${statusColor} mb-3`}>
+                <div className={`rounded-xl border shadow-lg transition-all duration-300 overflow-hidden ${statusColor} mb-3 relative z-10`}>
                     <div className="p-4 flex justify-between items-center cursor-pointer hover:bg-slate-700/30 transition-colors" onClick={() => setIsExpanded(!isExpanded)}>
                         <div className="flex-1">
                             <div className="flex items-center gap-2">
@@ -503,9 +504,11 @@
             const [loading, setLoading] = useState(true);
             const [isCloud, setIsCloud] = useState(false);
             const [user, setUser] = useState(null);
-            const [isConfigured, setIsConfigured] = useState(false);
             const fb = window.fb;
             const fileInputRef = useRef(null);
+
+            // Use v25 for local storage so we don't accidentally wipe existing data from previous versions.
+            const LOCAL_STORAGE_KEY = 'bar-inventory-final-v25'; 
 
             useEffect(() => {
                 const initApp = async () => {
@@ -532,7 +535,7 @@
                 };
                 const loadLocal = () => {
                     try {
-                        const saved = localStorage.getItem('bar-inventory-final-v24');
+                        const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
                         if (saved) setData(JSON.parse(saved));
                     } catch(e) {}
                     setLoading(false);
@@ -540,7 +543,7 @@
                 initApp();
             }, []);
 
-            // --- CSV FIX HERE ---
+            // --- CSV Generator ---
             const downloadReport = () => {
                 const safeDate = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
                 let csvContent = "PRODUCT,START STOCK,TOTAL PHYSICAL,PURCHASES,SYSTEM SALES,SOLD BOTTLES/CANS,SOLD SHOTS/BUCKETS,COMPS,TOTAL SALES POS,DIFFERENCE\n";
@@ -591,7 +594,7 @@
                         fb.setDoc(fb.doc(db, 'inventory', 'master'), { items: newData });
                     } catch (e) {}
                 } else {
-                    localStorage.setItem('bar-inventory-final-v24', JSON.stringify(newData));
+                    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(newData));
                 }
             };
 
@@ -635,7 +638,7 @@
             const confirmNewPeriod = () => {
                 setModalConfig({
                     title: "Start Next Period?",
-                    message: "Moves Physical to On Hand.\nClears Sales/Purchases.",
+                    message: "Moves Physical to On Hand.\nBodega = Physical + Purchases.\nClears Sales/Purchases.",
                     isDestructive: false,
                     onConfirm: () => {
                         const newData = data.map(cat => ({
@@ -650,7 +653,7 @@
 
                                 return {
                                     ...item,
-                                    // Move physical -> start (except bodega which is phys + purchases)
+                                    // Move physical -> start (Bodega is phys + purchases)
                                     start_bar1: item.bar1 !== "" ? item.bar1 : 0, 
                                     start_bar2: item.bar2 !== "" ? item.bar2 : 0,
                                     start_bodega: nextStartBodega,
@@ -748,33 +751,42 @@
 
             return (
                 <div className="min-h-screen bg-slate-900 font-sans pb-20">
-                    <Header 
-                        onNewPeriod={confirmNewPeriod} 
-                        onClearAll={confirmClearAll} 
-                        onDownload={downloadReport} 
-                        onShowCharts={() => setShowCharts(true)} 
-                        onBackup={handleBackup} 
-                        onRestore={() => fileInputRef.current.click()} 
-                        isCloud={isCloud} 
-                        onScan={() => setIsScanning(true)} 
-                    />
+                    
+                    {/* ENCABEZADO Y BÚSQUEDA FIJOS (FIXED) */}
+                    <div className="fixed top-0 left-0 right-0 z-50 shadow-xl bg-slate-900">
+                        <Header 
+                            onNewPeriod={confirmNewPeriod} 
+                            onClearAll={confirmClearAll} 
+                            onDownload={downloadReport} 
+                            onShowCharts={() => setShowCharts(true)} 
+                            onBackup={handleBackup} 
+                            onRestore={() => fileInputRef.current.click()} 
+                            isCloud={isCloud} 
+                            onScan={() => setIsScanning(true)} 
+                        />
+                        
+                        {/* Barra de Búsqueda Integrada en el bloque fijo */}
+                        <div className="bg-slate-950 p-4 border-b border-slate-800">
+                            <div className="max-w-5xl mx-auto relative">
+                                <Icons.Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={20} />
+                                <input type="text" placeholder="Search product..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full bg-slate-900 rounded-xl pl-10 pr-4 py-3 text-slate-200 border border-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all placeholder:text-slate-600" />
+                            </div>
+                        </div>
+
+                        {/* Mensaje de código de barras pendiente si existe */}
+                        {pendingBarcode && (
+                            <div className="bg-indigo-900 p-2 text-center text-white border-b border-indigo-700">
+                                <p className="font-bold text-sm">Barcode: {pendingBarcode}</p>
+                                <p className="text-[10px] text-indigo-200">Find item below and click "Link"</p>
+                                <button onClick={() => setPendingBarcode(null)} className="mt-1 text-[10px] underline hover:text-indigo-300">Cancel</button>
+                            </div>
+                        )}
+                    </div>
                     
                     <input type="file" ref={fileInputRef} style={{display:'none'}} accept=".json" onChange={handleRestoreFile} />
                     
-                    {pendingBarcode && (
-                        <div className="bg-indigo-900 p-4 text-center text-white border-b border-indigo-700 sticky top-[72px] z-40 shadow-md">
-                            <p className="font-bold">Barcode: {pendingBarcode}</p>
-                            <p className="text-xs text-indigo-200">Find item below and click "Link"</p>
-                            <button onClick={() => setPendingBarcode(null)} className="mt-1 text-xs underline hover:text-indigo-300">Cancel</button>
-                        </div>
-                    )}
-
-                    <div className="bg-slate-950 p-4 border-b border-slate-800 sticky top-[72px] z-20 shadow-lg">
-                        <div className="max-w-5xl mx-auto relative">
-                            <Icons.Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={20} />
-                            <input type="text" placeholder="Search product..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full bg-slate-900 rounded-xl pl-10 pr-4 py-3 text-slate-200 border border-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all placeholder:text-slate-600" />
-                        </div>
-                    </div>
+                    {/* Espaciador para que el contenido no quede oculto detrás del encabezado fijo */}
+                    <div className="pt-[220px]"></div>
 
                     <main className="max-w-5xl mx-auto p-4 space-y-4">
                         {filteredData.length === 0 && <div className="text-center py-20 text-slate-500"><p>No products found.</p></div>}
