@@ -638,7 +638,7 @@
             const confirmNewPeriod = () => {
                 setModalConfig({
                     title: "Start Next Period?",
-                    message: "Moves Physical to On Hand.\nBodega = Physical + Purchases.\nClears Sales/Purchases.",
+                    message: "Moves Physical to On Hand.\nClears Sales/Purchases.",
                     isDestructive: false,
                     onConfirm: () => {
                         const newData = data.map(cat => ({
@@ -649,11 +649,12 @@
                                 const purchases = parseFloat(item.purchases) || 0;
                                 
                                 // Calculate next start bodega
-                                const nextStartBodega = physBodega + purchases;
+                                // CHANGE: We do NOT add purchases to next period start on hand storage anymore.
+                                const nextStartBodega = physBodega;
 
                                 return {
                                     ...item,
-                                    // Move physical -> start (Bodega is phys + purchases)
+                                    // Move physical -> start (Bodega is just phys now)
                                     start_bar1: item.bar1 !== "" ? item.bar1 : 0, 
                                     start_bar2: item.bar2 !== "" ? item.bar2 : 0,
                                     start_bodega: nextStartBodega,
