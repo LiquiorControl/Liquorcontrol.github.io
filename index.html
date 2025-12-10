@@ -67,6 +67,7 @@
         // 📋 PAR LEVELS (NIVELES IDEALES)
         // ==========================================
         const PAR_LEVELS = {
+            // Liquor
             "Crown Royal Regal": 2, 
             "Apple Crown Royal": 2,
             "Jack Daniels Black": 4,
@@ -94,7 +95,19 @@
             "Long Island Tea Mix": 6,
             "Peach Schnapps Boston": 12,
             "Triple Sec Boston": 12,
-            "Bacardi Light": 6
+            "Bacardi Light": 6,
+            
+            // Beers
+            "Modelo Especial": 600,
+            "Corona": 720,
+            "Michelob Ultra": 96,
+            "Heineken": 48,
+            "Pacifico": 72,
+
+            // Energy & Seltzer (NUEVOS)
+            "Red Bull Regular": 96,
+            "Red Bull Sugar Free": 96,
+            "Red Bull Watermelon": 72
         };
 
         // --- ERROR BOUNDARY ---
@@ -188,7 +201,8 @@
                                         </div>
                                         <div className="text-right">
                                             <div className="text-[10px] text-amber-500 uppercase font-bold">To Buy</div>
-                                            <div className="text-3xl font-black text-amber-400">{item.needed}</div>
+                                            <div className="text-2xl font-black text-amber-400">{item.needed}</div>
+                                            {item.details && <div className="text-[10px] text-slate-500 font-mono mt-1">{item.details}</div>}
                                         </div>
                                     </div>
                                 ))}
@@ -735,7 +749,29 @@
                             
                             const needed = target - current;
                             if (needed > 0) {
-                                toBuy.push({ name: item.name, current, target, needed });
+                                let displayQuantity = needed; // Default: show raw units
+                                let details = null;
+
+                                // --- LOGIC FOR CASES (24 units) ---
+                                // Applies to category "Beers" OR items containing "Red Bull"
+                                const isBeer = cat.category.includes("Beers");
+                                const isRedBull = item.name.includes("Red Bull");
+                                
+                                if (isBeer || isRedBull) {
+                                    const cases = needed / 24;
+                                    // Show exact cases (e.g., "2 Cases" or "1.5 Cases")
+                                    const formattedCases = cases % 1 === 0 ? cases : cases.toFixed(1);
+                                    displayQuantity = `${formattedCases} Cases`;
+                                    details = `(${needed} units needed)`;
+                                }
+
+                                toBuy.push({ 
+                                    name: item.name, 
+                                    current, 
+                                    target, 
+                                    needed: displayQuantity,
+                                    details
+                                });
                             }
                         }
                     });
