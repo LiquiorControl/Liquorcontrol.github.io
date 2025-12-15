@@ -199,6 +199,99 @@
             );
         };
 
+        // --- QUICK EDIT MODAL (NUEVO) ---
+        const QuickEditModal = ({ item, onClose, onUpdate }) => {
+            if (!item) return null;
+            
+            // Estado para saber qué campo estamos editando (Por defecto Bodega/Storage)
+            const [activeField, setActiveField] = useState('bodega');
+
+            // Obtener valor actual numérico
+            const currentValue = parseFloat(item[activeField]) || 0;
+
+            const handleDelta = (delta) => {
+                const newValue = Math.max(0, currentValue + delta);
+                onUpdate(item.id, activeField, newValue);
+            };
+
+            const locations = [
+                { id: 'bodega', label: 'Storage (Bodega)' },
+                { id: 'bar1', label: 'Bar 1' },
+                { id: 'bar2', label: 'Bar 2' },
+                { id: 'barroluco', label: 'Barroluco' },
+                { id: 'purchases', label: 'Purchases (Compras)' }
+            ];
+
+            return (
+                <div className="fixed inset-0 bg-black/90 flex flex-col items-center justify-center z-[60] backdrop-blur-md animate-in p-4">
+                    <div className="bg-slate-900 border border-slate-700 w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+                        
+                        {/* Header */}
+                        <div className="p-4 bg-slate-950 border-b border-slate-800 flex justify-between items-center">
+                            <div>
+                                <h2 className="text-xl font-bold text-white leading-tight">{item.name}</h2>
+                                <p className="text-xs text-slate-400 font-mono mt-1">Quick Edit Mode</p>
+                            </div>
+                            <button onClick={onClose} className="bg-slate-800 hover:bg-slate-700 text-white p-2 rounded-full transition-colors">
+                                <span className="text-xl px-2">&times;</span>
+                            </button>
+                        </div>
+
+                        {/* Location Selector */}
+                        <div className="p-2 bg-slate-900 border-b border-slate-800 overflow-x-auto">
+                            <div className="flex gap-2">
+                                {locations.map(loc => (
+                                    <button
+                                        key={loc.id}
+                                        onClick={() => setActiveField(loc.id)}
+                                        className={`px-3 py-2 rounded-lg text-xs font-bold whitespace-nowrap transition-all ${activeField === loc.id ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-900/50' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'}`}
+                                    >
+                                        {loc.label}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Main Counter Area */}
+                        <div className="flex-1 p-6 flex flex-col items-center justify-center bg-gradient-to-b from-slate-900 to-slate-950">
+                            
+                            <div className="text-center mb-8">
+                                <div className="text-slate-400 text-sm uppercase font-bold tracking-wider mb-2">
+                                    Current Count ({locations.find(l => l.id === activeField)?.label})
+                                </div>
+                                <div className="text-7xl font-black text-white font-mono tracking-tight tabular-nums">
+                                    {currentValue}
+                                </div>
+                            </div>
+
+                            <div className="w-full grid grid-cols-2 gap-8">
+                                {/* Minus Buttons */}
+                                <div className="flex flex-col gap-3 items-end">
+                                    <button onClick={() => handleDelta(-24)} className="w-full bg-red-900/20 hover:bg-red-900/40 text-red-500 border border-red-900/50 py-3 rounded-xl font-bold text-lg active:scale-95 transition-all">- 24</button>
+                                    <button onClick={() => handleDelta(-12)} className="w-full bg-red-900/20 hover:bg-red-900/40 text-red-500 border border-red-900/50 py-3 rounded-xl font-bold text-lg active:scale-95 transition-all">- 12</button>
+                                    <button onClick={() => handleDelta(-6)} className="w-full bg-red-900/20 hover:bg-red-900/40 text-red-500 border border-red-900/50 py-3 rounded-xl font-bold text-lg active:scale-95 transition-all">- 6</button>
+                                    <button onClick={() => handleDelta(-1)} className="w-full bg-red-600 hover:bg-red-500 text-white shadow-lg shadow-red-900/40 py-4 rounded-xl font-black text-2xl active:scale-95 transition-all">- 1</button>
+                                </div>
+
+                                {/* Plus Buttons */}
+                                <div className="flex flex-col gap-3 items-start">
+                                    <button onClick={() => handleDelta(24)} className="w-full bg-emerald-900/20 hover:bg-emerald-900/40 text-emerald-500 border border-emerald-900/50 py-3 rounded-xl font-bold text-lg active:scale-95 transition-all">+ 24</button>
+                                    <button onClick={() => handleDelta(12)} className="w-full bg-emerald-900/20 hover:bg-emerald-900/40 text-emerald-500 border border-emerald-900/50 py-3 rounded-xl font-bold text-lg active:scale-95 transition-all">+ 12</button>
+                                    <button onClick={() => handleDelta(6)} className="w-full bg-emerald-900/20 hover:bg-emerald-900/40 text-emerald-500 border border-emerald-900/50 py-3 rounded-xl font-bold text-lg active:scale-95 transition-all">+ 6</button>
+                                    <button onClick={() => handleDelta(1)} className="w-full bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-900/40 py-4 rounded-xl font-black text-2xl active:scale-95 transition-all">+ 1</button>
+                                </div>
+                            </div>
+
+                        </div>
+                        
+                        <div className="p-4 bg-slate-900 border-t border-slate-800">
+                             <button onClick={onClose} className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 rounded-xl shadow-lg shadow-indigo-900/30">Done</button>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
         // --- SHOPPING LIST MODAL ---
         const ShoppingListModal = ({ isOpen, onClose, items }) => {
             if (!isOpen) return null;
@@ -751,6 +844,7 @@
             const [shoppingItems, setShoppingItems] = useState([]); // NEW STATE
             const [isScanning, setIsScanning] = useState(false);
             const [pendingBarcode, setPendingBarcode] = useState(null);
+            const [quickScanItemId, setQuickScanItemId] = useState(null); // NUEVO ESTADO PARA QUICK EDIT
 
             const handleScanSuccess = (decodedText) => {
                 playScanSound(); // Plays beep sound
@@ -774,15 +868,11 @@
                     const match = cat.items.find(i => i.barcode === decodedText);
                     if (match) { foundItem = match; break; }
                 }
+                
                 if (foundItem) {
-                    setSearchTerm(foundItem.name);
-                    // Open the category of the found item automatically
-                    data.forEach(cat => {
-                        if (cat.items.find(i => i.id === foundItem.id)) {
-                            setOpenCategories(prev => ({ ...prev, [cat.category]: true }));
-                        }
-                    });
-                    showNotification(`Encontrado: ${foundItem.name}`);
+                    // EN LUGAR DE SOLO BUSCAR, ABRIMOS EL MODAL RÁPIDO
+                    setQuickScanItemId(foundItem.id);
+                    showNotification(`Abriendo: ${foundItem.name}`);
                 } else {
                     alert(`Producto no encontrado. Usa el botón "Vincular" dentro del producto para asignarlo.`);
                 }
@@ -959,6 +1049,16 @@
                 return Icons.RefreshCw;
             };
 
+            // HELPER: Get active item object for Quick Modal
+            const activeQuickItem = useMemo(() => {
+                if (!quickScanItemId) return null;
+                for (const cat of data) {
+                    const found = cat.items.find(i => i.id === quickScanItemId);
+                    if (found) return found;
+                }
+                return null;
+            }, [data, quickScanItemId]);
+
             if (loading) return <div className="flex items-center justify-center min-h-screen text-slate-500">Loading...</div>;
 
             return (
@@ -1035,6 +1135,15 @@
                         <ScannerModal 
                             onScanSuccess={handleScanSuccess} 
                             onClose={() => { setIsScanning(false); setScanningForItem(null); }} 
+                        />
+                    )}
+
+                    {/* NUEVO: QUICK EDIT MODAL */}
+                    {quickScanItemId && activeQuickItem && (
+                        <QuickEditModal 
+                            item={activeQuickItem}
+                            onClose={() => setQuickScanItemId(null)}
+                            onUpdate={updateItem}
                         />
                     )}
                     
