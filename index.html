@@ -154,6 +154,31 @@
             ErrorIcon: (p) => <IconWrapper {...p}><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></IconWrapper>
         };
 
+        // --- AUDIO HELPER ---
+        const playScanSound = () => {
+            try {
+                const AudioContext = window.AudioContext || window.webkitAudioContext;
+                if (!AudioContext) return;
+                const ctx = new AudioContext();
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                
+                // Beep sound configuration
+                osc.type = "sine";
+                osc.frequency.setValueAtTime(1200, ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(800, ctx.currentTime + 0.1);
+                
+                gain.gain.setValueAtTime(0.1, ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.1);
+                
+                osc.start(ctx.currentTime);
+                osc.stop(ctx.currentTime + 0.15);
+            } catch (e) { console.error("Audio play failed", e); }
+        };
+
         // --- COMPONENTS ---
         const ConfirmationModal = ({ isOpen, onClose, onConfirm, title, message, isDestructive }) => {
             if (!isOpen) return null;
@@ -728,6 +753,7 @@
             const [pendingBarcode, setPendingBarcode] = useState(null);
 
             const handleScanSuccess = (decodedText) => {
+                playScanSound(); // Plays beep sound
                 setIsScanning(false);
 
                 // NUEVA LÓGICA: Si estamos vinculando un producto específico
