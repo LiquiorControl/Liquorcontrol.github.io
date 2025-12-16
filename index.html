@@ -154,8 +154,8 @@
             ErrorIcon: (p) => <IconWrapper {...p}><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></IconWrapper>
         };
 
-        // --- AUDIO HELPER ---
-        const playScanSound = () => {
+        // --- AUDIO HELPER (MEJORADO: SONIDOS DISTINTOS) ---
+        const playSound = (type) => {
             try {
                 const AudioContext = window.AudioContext || window.webkitAudioContext;
                 if (!AudioContext) return;
@@ -166,16 +166,39 @@
                 osc.connect(gain);
                 gain.connect(ctx.destination);
                 
-                // Beep sound configuration
-                osc.type = "sine";
-                osc.frequency.setValueAtTime(1200, ctx.currentTime);
-                osc.frequency.exponentialRampToValueAtTime(800, ctx.currentTime + 0.1);
-                
-                gain.gain.setValueAtTime(0.1, ctx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.1);
-                
-                osc.start(ctx.currentTime);
-                osc.stop(ctx.currentTime + 0.15);
+                const now = ctx.currentTime;
+
+                switch (type) {
+                    case 'success': // Sonido de escaneo exitoso (Original)
+                        osc.type = "sine";
+                        osc.frequency.setValueAtTime(1200, now);
+                        osc.frequency.exponentialRampToValueAtTime(800, now + 0.1);
+                        gain.gain.setValueAtTime(0.1, now);
+                        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+                        osc.start(now);
+                        osc.stop(now + 0.15);
+                        break;
+                    
+                    case 'add': // Sonido POSITIVO (+) - Agudo y ascendente
+                        osc.type = "sine";
+                        osc.frequency.setValueAtTime(800, now);
+                        osc.frequency.linearRampToValueAtTime(1000, now + 0.1); // Sube de tono
+                        gain.gain.setValueAtTime(0.08, now);
+                        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+                        osc.start(now);
+                        osc.stop(now + 0.15);
+                        break;
+
+                    case 'sub': // Sonido NEGATIVO (-) - Grave y descendente
+                        osc.type = "triangle"; // Sonido un poco más "seco"
+                        osc.frequency.setValueAtTime(400, now);
+                        osc.frequency.linearRampToValueAtTime(300, now + 0.1); // Baja de tono
+                        gain.gain.setValueAtTime(0.08, now);
+                        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+                        osc.start(now);
+                        osc.stop(now + 0.15);
+                        break;
+                }
             } catch (e) { console.error("Audio play failed", e); }
         };
 
@@ -210,6 +233,10 @@
             const currentValue = parseFloat(item[activeField]) || 0;
 
             const handleDelta = (delta) => {
+                // Sonido según si es positivo o negativo
+                if (delta > 0) playSound('add');
+                else playSound('sub');
+
                 // Lógica mejorada para manejar decimales sin errores de punto flotante
                 const next = Math.round((currentValue + delta) * 10) / 10;
                 const newValue = Math.max(0, next);
@@ -850,7 +877,7 @@
             const [quickScanItemId, setQuickScanItemId] = useState(null); // NUEVO ESTADO PARA QUICK EDIT
 
             const handleScanSuccess = (decodedText) => {
-                playScanSound(); // Plays beep sound
+                playSound('success'); // Plays success beep
                 setIsScanning(false);
 
                 // NUEVA LÓGICA: Si estamos vinculando un producto específico
