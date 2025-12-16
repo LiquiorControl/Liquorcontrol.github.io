@@ -466,8 +466,10 @@
 
         const Header = ({ onNewPeriod, onClearAll, onDownload, onShowCharts, onBackup, onRestore, isCloud, onScan, onShopping, logoSrc, onLogoUpload }) => {
             const date = new Date();
+            // CAMBIO 1: Fecha en Inglés (en-US)
             const options = { weekday: 'long', day: 'numeric', month: 'long' };
-            let dateStr = date.toLocaleDateString('es-ES', options);
+            let dateStr = date.toLocaleDateString('en-US', options);
+            // Capitalizar primera letra (aunque en inglés ya suele venir bien, esto asegura consistencia)
             dateStr = dateStr.charAt(0).toUpperCase() + dateStr.slice(1);
 
             return (
@@ -749,14 +751,25 @@
             const [quickScanItemId, setQuickScanItemId] = useState(null);
 
             const handleScanSuccess = (decodedText) => {
-                playSound('success'); setIsScanning(false);
+                playSound('success'); 
+                setIsScanning(false); // Cerramos momentáneamente para procesar
+                
                 if (scanningForItem) {
                     const newData = data.map(cat => ({ ...cat, items: cat.items.map(item => item.id === scanningForItem ? { ...item, barcode: decodedText } : item) }));
                     saveData(newData); showNotification(`Código vinculado exitosamente!`); setScanningForItem(null); return;
                 }
+                
                 let foundItem = null;
                 for (const cat of data) { const match = cat.items.find(i => i.barcode === decodedText); if (match) { foundItem = match; break; } }
-                if (foundItem) { setQuickScanItemId(foundItem.id); showNotification(`Abriendo: ${foundItem.name}`); } else alert(`Producto no encontrado. Usa el botón "Vincular" dentro del producto para asignarlo.`);
+                
+                if (foundItem) { 
+                    setQuickScanItemId(foundItem.id); 
+                    showNotification(`Abriendo: ${foundItem.name}`); 
+                } else { 
+                    // CAMBIO 3: Si no encuentra el producto, avisa y RE-ABRE el escáner automáticamente
+                    alert(`Producto no encontrado. Usa el botón "Vincular" dentro del producto para asignarlo.`);
+                    setIsScanning(true); 
+                }
             };
 
             const requestItemScan = (itemId) => { setScanningForItem(itemId); setIsScanning(true); };
@@ -852,7 +865,19 @@
                     {showCharts && <ChartsView data={data} onClose={() => setShowCharts(false)} />}
                     {showShopping && <ShoppingListModal isOpen={showShopping} onClose={() => setShowShopping(false)} items={shoppingItems} />}
                     {isScanning && <ScannerModal onScanSuccess={handleScanSuccess} onClose={() => { setIsScanning(false); setScanningForItem(null); }} />}
-                    {quickScanItemId && activeQuickItem && <QuickEditModal item={activeQuickItem} onClose={() => setQuickScanItemId(null)} onUpdate={updateItem} />}
+                    
+                    {/* CAMBIO 2: Al cerrar Quick Edit (onClose), re-abrimos el scanner (setIsScanning(true)) */}
+                    {quickScanItemId && activeQuickItem && (
+                        <QuickEditModal 
+                            item={activeQuickItem} 
+                            onClose={() => { 
+                                setQuickScanItemId(null); 
+                                setIsScanning(true); // <--- ESTO REABRE EL ESCÁNER AUTOMÁTICAMENTE
+                            }} 
+                            onUpdate={updateItem} 
+                        />
+                    )}
+                    
                     {isScanning && scanningForItem && <div className="fixed top-16 left-0 right-0 z-[60] text-center pointer-events-none"><span className="bg-indigo-600 text-white px-4 py-1 rounded-full text-sm font-bold shadow-lg border border-indigo-400">Vinculando producto...</span></div>}
                     {notification && <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 bg-slate-800 text-white px-6 py-3 rounded-full shadow-2xl border border-slate-700 flex items-center gap-3 animate-in z-50 whitespace-nowrap"><Icons.CheckCircle size={18} className="text-emerald-400" /><span className="font-medium text-sm">{notification}</span></div>}
                 </div>
