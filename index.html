@@ -17,6 +17,9 @@
 
     <!-- 4. Scanner Library -->
     <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+
+    <!-- 5. Chart.js (NUEVO: Para el gráfico de pastel) -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     
     <style>
         /* DARK THEME GLOBAL */
@@ -406,10 +409,22 @@
             );
         };
 
+        // --- MODERN CHARTS VIEW ---
         const ChartsView = ({ data, onClose }) => {
-            const activeItems = useMemo(() => {
+            const canvasRef = useRef(null);
+            const chartInstance = useRef(null);
+
+            const { activeItems, totals, categoryData } = useMemo(() => {
                 let items = [];
+                let totalConsumed = 0;
+                let totalSold = 0;
+                let totalDiff = 0;
+                
+                // Agrupación de ventas por categoría
+                let catMap = {};
+
                 data.forEach(cat => {
+                    let catSales = 0;
                     cat.items.forEach(item => {
                         const hasData = item.bar1 || item.bar2 || item.bodega || item.barroluco || item.sales;
                         if (hasData) {
@@ -419,55 +434,235 @@
                             const sales = parseFloat(item.sales)||0;
                             const systemConsumption = totalStart + purchases - totalPhys;
                             const diff = sales - systemConsumption;
-                            items.push({ ...item, systemConsumption, sales, diff });
+                            
+                            // Solo mostramos items que tengan movimiento (consumo o venta)
+                            if (systemConsumption > 0 || sales > 0) {
+                                items.push({ ...item, systemConsumption, sales, diff });
+                                totalConsumed += systemConsumption;
+                                totalSold += sales;
+                                totalDiff += diff;
+                                catSales += sales;
+                            }
                         }
                     });
+                    if (catSales > 0) catMap[cat.category] = catSales;
                 });
-                return items.sort((a, b) => Math.abs(b.diff) - Math.abs(a.diff));
+                return { 
+                    activeItems: items.sort((a, b) => Math.abs(b.diff) - Math.abs(a.diff)),
+                    totals: { totalConsumed, totalSold, totalDiff },
+                    categoryData: catMap
+                };
             }, [data]);
 
+            // Efecto para renderizar el Gráfico
+            useEffect(() => {
+                if (canvasRef.current && window.Chart) {
+                    if (chartInstance.current) chartInstance.current.destroy();
+
+                    const ctx = canvasRef.current.getContext('2d');
+                    const labels = Object.keys(categoryData);
+                    const values = Object.values(categoryData);
+                    
+                    // Paleta de colores moderna
+                    const colors = [
+                        '#6366f1', // Indigo
+                        '#10b981', // Emerald
+                        '#f59e0b', // Amber
+                        '#ec4899', // Pink
+                        '#8b5cf6', // Violet
+                        '#06b6d4', // Cyan
+                        '#ef4444'  // Red
+                    ];
+
+                    chartInstance.current = new window.Chart(ctx, {
+                        type: 'doughnut',
+                        data: {
+                            labels: labels,
+                            datasets: [{
+                                data: values,
+                                backgroundColor: colors,
+                                borderColor: '#0f172a', // slate-900 border
+                                borderWidth: 2,
+                                hoverOffset: 4
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: { 
+                                    position: 'right', 
+                                    labels: { color: '#94a3b8', font: { size: 11, family: 'monospace' }, boxWidth: 12 } 
+                                },
+                                title: { display: false }
+                            },
+                            layout: { padding: 10 }
+                        }
+                    });
+                }
+                return () => { if (chartInstance.current) chartInstance.current.destroy(); };
+            }, [categoryData]);
+
             return (
-                <div className="fixed inset-0 bg-black/90 flex flex-col z-50 backdrop-blur-sm animate-in overflow-hidden">
-                    <div className="p-4 border-b border-gray-800 flex justify-between items-center bg-gray-900">
-                        <h2 className="text-xl font-bold text-white flex items-center gap-2"><Icons.BarChart className="text-amber-500" /> Analysis</h2>
-                        <button onClick={onClose} className="p-2 bg-gray-800 text-gray-300 rounded-lg hover:bg-gray-700">Close</button>
+                <div className="fixed inset-0 bg-[#0B1120] flex flex-col z-50 animate-in overflow-hidden">
+                    {/* Header Moderno */}
+                    <div className="p-4 border-b border-slate-800/60 flex justify-between items-center bg-slate-900/50 backdrop-blur-md">
+                        <h2 className="text-xl font-bold text-white flex items-center gap-3">
+                            <div className="p-2 bg-indigo-500/10 rounded-xl border border-indigo-500/20">
+                                <Icons.BarChart className="text-indigo-400" size={20} />
+                            </div>
+                            Performance Analytics
+                        </h2>
+                        <button onClick={onClose} className="px-4 py-2 bg-slate-800 text-slate-300 rounded-lg hover:bg-slate-700 hover:text-white transition-colors text-sm font-medium border border-slate-700">Close</button>
                     </div>
-                    <div className="flex-1 overflow-y-auto p-4 space-y-4">
-                        {activeItems.length === 0 && <div className="text-center text-gray-500 mt-20">No data to display yet.</div>}
-                        {activeItems.map(item => {
-                            const maxValue = Math.max(item.systemConsumption, item.sales, 1); 
-                            const consumePercent = Math.min((item.systemConsumption / maxValue) * 100, 100);
-                            const salesPercent = Math.min((item.sales / maxValue) * 100, 100);
-                            return (
-                                <div key={item.id} className="bg-gray-800 border border-gray-700 p-4 rounded-xl">
-                                    <div className="flex justify-between mb-2">
-                                        <span className="font-bold text-white">{item.name}</span>
-                                        <span className={`font-mono font-bold ${item.diff < 0 ? 'text-red-400' : 'text-blue-400'}`}>Diff: {item.diff.toFixed(2)}</span>
-                                    </div>
-                                    <div className="space-y-2">
-                                        <div className="relative h-6 bg-gray-900 rounded-full overflow-hidden flex items-center">
-                                            <div style={{ width: `${consumePercent}%` }} className="h-full bg-gray-600"></div>
-                                            <span className="absolute left-2 text-xs font-bold text-white">Consumed: {item.systemConsumption.toFixed(1)}</span>
-                                        </div>
-                                        <div className="relative h-6 bg-gray-900 rounded-full overflow-hidden flex items-center">
-                                            <div style={{ width: `${salesPercent}%` }} className={`h-full ${item.diff < 0 ? 'bg-red-500' : 'bg-blue-500'}`}></div>
-                                            <span className="absolute left-2 text-xs font-bold text-white">Sold: {item.sales.toFixed(1)}</span>
-                                        </div>
-                                    </div>
+
+                    <div className="flex-1 overflow-y-auto p-4 space-y-6">
+                        
+                        {/* Summary Cards & Pie Chart (Grid Híbrido) */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {/* Columna Izquierda: Tarjetas de Totales */}
+                            <div className="space-y-3 flex flex-col">
+                                <div className="flex-1 bg-slate-800/40 p-5 rounded-2xl border border-slate-700/50 shadow-lg flex flex-col justify-center">
+                                    <div className="text-[11px] text-slate-400 uppercase font-bold tracking-wider mb-2 flex items-center gap-2"><Icons.Package size={14} className="text-slate-500"/> Total Consumed</div>
+                                    <div className="text-4xl font-black text-slate-200">{totals.totalConsumed.toFixed(1)}</div>
                                 </div>
-                            );
-                        })}
+                                <div className="flex-1 bg-slate-800/40 p-5 rounded-2xl border border-slate-700/50 shadow-lg flex flex-col justify-center">
+                                    <div className="text-[11px] text-indigo-300 uppercase font-bold tracking-wider mb-2 flex items-center gap-2"><Icons.DollarSign size={14} className="text-indigo-500"/> Total Sales (POS)</div>
+                                    <div className="text-4xl font-black text-indigo-400">{totals.totalSold.toFixed(1)}</div>
+                                </div>
+                                <div className={`flex-1 bg-slate-800/40 p-5 rounded-2xl border shadow-lg flex flex-col justify-center ${totals.totalDiff < 0 ? 'border-red-500/30 bg-red-900/5' : 'border-emerald-500/30 bg-emerald-900/5'}`}>
+                                    <div className={`text-[11px] uppercase font-bold tracking-wider mb-2 flex items-center gap-2 ${totals.totalDiff < 0 ? 'text-red-400' : 'text-emerald-400'}`}><Icons.RotateCcw size={14}/> Net Difference</div>
+                                    <div className={`text-4xl font-black ${totals.totalDiff < 0 ? 'text-red-400' : 'text-emerald-400'}`}>{totals.totalDiff > 0 ? '+' : ''}{totals.totalDiff.toFixed(1)}</div>
+                                </div>
+                            </div>
+
+                            {/* Columna Derecha: Gráfico de Pastel */}
+                            <div className="bg-slate-800/40 p-2 rounded-2xl border border-slate-700/50 shadow-lg min-h-[250px] relative flex flex-col">
+                                <div className="absolute top-4 left-4 text-xs font-bold text-slate-400 uppercase tracking-widest z-10">Sales Share</div>
+                                <div className="flex-1 relative mt-4">
+                                     <canvas ref={canvasRef}></canvas>
+                                </div>
+                                {Object.keys(categoryData).length === 0 && (
+                                    <div className="absolute inset-0 flex items-center justify-center text-slate-500 text-sm">No sales data yet</div>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* List Breakdown */}
+                        <div className="space-y-3">
+                            <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest px-1 mt-6">Detailed Breakdown</h3>
+                            
+                            {activeItems.length === 0 && (
+                                <div className="text-center py-20 flex flex-col items-center opacity-50">
+                                    <div className="p-6 rounded-full bg-slate-800/50 mb-4 border border-slate-700"><Icons.BarChart className="text-slate-500" size={40} /></div>
+                                    <p className="text-slate-400 font-medium">No active data found for this period.</p>
+                                </div>
+                            )}
+
+                            {activeItems.map(item => {
+                                const maxValue = Math.max(item.systemConsumption, item.sales, 1); 
+                                const consumePercent = (item.systemConsumption / maxValue) * 100;
+                                const salesPercent = (item.sales / maxValue) * 100;
+                                
+                                // Modern Logic:
+                                const isLoss = item.diff < -0.1;
+                                const isGain = item.diff > 0.1;
+                                
+                                return (
+                                    <div key={item.id} className="bg-slate-900/80 border border-slate-800 p-5 rounded-2xl relative overflow-hidden group hover:border-slate-700 transition-all shadow-md">
+                                        
+                                        {/* Barra lateral indicadora de estado */}
+                                        {isLoss && <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-red-600 to-red-400"></div>}
+                                        {isGain && <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-emerald-600 to-emerald-400"></div>}
+
+                                        <div className="flex justify-between items-start mb-5 pl-2 relative z-10">
+                                            <div>
+                                                <div className="font-bold text-slate-100 text-lg leading-tight tracking-tight">{item.name}</div>
+                                                <div className="text-[10px] text-slate-500 font-mono mt-1 flex items-center gap-2">
+                                                    ID: {item.id}
+                                                    {isLoss && <span className="text-red-500 font-bold bg-red-900/20 px-1.5 rounded text-[9px] border border-red-900/50">LOSS</span>}
+                                                </div>
+                                            </div>
+                                            <div className={`px-3 py-1.5 rounded-lg text-sm font-black font-mono border min-w-[60px] text-center shadow-sm ${isLoss ? 'bg-red-500/10 text-red-400 border-red-500/20' : isGain ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-slate-800 text-slate-400 border-slate-700'}`}>
+                                                {item.diff > 0 ? '+' : ''}{item.diff.toFixed(2)}
+                                            </div>
+                                        </div>
+
+                                        {/* Barras de Visualización */}
+                                        <div className="space-y-4 pl-2 relative z-10">
+                                            
+                                            {/* Consumption Bar */}
+                                            <div className="relative">
+                                                <div className="flex justify-between text-[11px] mb-1.5">
+                                                    <span className="text-slate-500 font-bold uppercase tracking-wider">Inventory Used</span>
+                                                    <span className="text-slate-300 font-mono font-bold">{item.systemConsumption.toFixed(1)}</span>
+                                                </div>
+                                                <div className="h-2.5 w-full bg-slate-800 rounded-full overflow-hidden border border-slate-700/50">
+                                                    <div 
+                                                        className="h-full bg-slate-500 rounded-full opacity-50" 
+                                                        style={{ width: `${consumePercent}%`, transition: 'width 1s ease-out' }}
+                                                    ></div>
+                                                </div>
+                                            </div>
+
+                                            {/* Sales Bar */}
+                                            <div className="relative">
+                                                <div className="flex justify-between text-[11px] mb-1.5">
+                                                    <span className={`${isLoss ? 'text-red-400' : 'text-indigo-400'} font-bold uppercase tracking-wider`}>POS Sales</span>
+                                                    <span className={`${isLoss ? 'text-red-300' : 'text-indigo-300'} font-mono font-bold`}>{item.sales.toFixed(1)}</span>
+                                                </div>
+                                                <div className="h-2.5 w-full bg-slate-800 rounded-full overflow-hidden border border-slate-700/50">
+                                                    <div 
+                                                        className={`h-full rounded-full shadow-[0_0_12px_rgba(0,0,0,0.5)] ${isLoss ? 'bg-gradient-to-r from-red-600 to-red-400 shadow-red-500/20' : 'bg-gradient-to-r from-indigo-600 to-indigo-400 shadow-indigo-500/20'}`}
+                                                        style={{ width: `${salesPercent}%`, transition: 'width 1s ease-out' }}
+                                                    ></div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
                     </div>
                 </div>
             );
         };
 
-        const Header = ({ onNewPeriod, onClearAll, onDownload, onShowCharts, onBackup, onRestore, isCloud, onScan, onShopping }) => (
+        const Header = ({ onNewPeriod, onClearAll, onDownload, onShowCharts, onBackup, onRestore, isCloud, onScan, onShopping, logoSrc, onLogoUpload }) => (
             // Eliminamos 'sticky' y 'top-0' aquí porque ahora estará dentro de un contenedor fixed
             <header className="bg-slate-900 border-b border-slate-800 text-white p-4 shadow-xl">
                 <div className="max-w-6xl mx-auto flex flex-col lg:flex-row justify-between items-center gap-4">
                     <div className="flex items-center gap-3 w-full lg:w-auto">
-                        <div className="bg-indigo-600 p-2 rounded-xl text-white shadow-lg"><Icons.Beer size={24} /></div>
+                        
+                        {/* --- LOGO AREA (CLICKABLE) - AHORA REDONDO --- */}
+                        <div 
+                            className="bg-slate-800 p-1 rounded-full border border-slate-700 shadow-lg overflow-hidden h-14 w-14 flex-shrink-0 cursor-pointer hover:border-indigo-500 transition-all relative group"
+                            onClick={() => document.getElementById('logo-upload').click()}
+                            title="Click to change logo"
+                        >
+                            <img 
+                                src={logoSrc} 
+                                alt="Logo" 
+                                className="h-full w-full object-cover rounded-full"
+                                onError={(e) => { 
+                                    e.target.onerror = null; 
+                                    e.target.src = "https://placehold.co/100x100/4f46e5/ffffff?text=LOGO"; 
+                                }} 
+                            />
+                            {/* Overlay icon on hover */}
+                            <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-full">
+                                <Icons.Upload size={16} className="text-white" />
+                            </div>
+                        </div>
+                        {/* Hidden File Input */}
+                        <input 
+                            type="file" 
+                            id="logo-upload" 
+                            accept="image/*" 
+                            className="hidden" 
+                            onChange={onLogoUpload}
+                        />
+                        
                         <div>
                             <h1 className="font-bold text-lg leading-tight text-white">Master Bar Control Palmas</h1>
                             <div className="flex items-center gap-2 text-xs">
@@ -518,9 +713,9 @@
         );
 
         const CategoryHeader = ({ title, icon: Icon, isOpen, toggle }) => (
-            // Ajustamos el top del sticky para que quede debajo del contenedor fijo
-            // Header ~88px + Search ~74px = ~162px. Aumentado a 200px para evitar superposicion visual
-            <button onClick={toggle} className="w-full flex items-center justify-between p-4 bg-slate-800 border border-slate-700 hover:bg-slate-700 rounded-xl shadow-lg mb-2 transition-all sticky top-[300px] lg:top-[210px] z-30 group">
+            // CAMBIO: Se eliminaron las clases 'sticky top-[...] z-30' para que la barra NO flote.
+            // Ahora se comportará como un elemento normal del flujo.
+            <button onClick={toggle} className="w-full flex items-center justify-between p-4 bg-slate-800 border border-slate-700 hover:bg-slate-700 rounded-xl shadow-lg mb-2 transition-all group">
                 <div className="flex items-center gap-3">
                     <div className="text-indigo-400 group-hover:text-indigo-300 transition-colors"><Icon size={20} /></div>
                     <h2 className="font-bold text-slate-200 text-lg group-hover:text-white transition-colors">{title}</h2>
@@ -772,6 +967,11 @@
             const [loading, setLoading] = useState(true);
             const [isCloud, setIsCloud] = useState(false);
             const [user, setUser] = useState(null);
+            
+            // LOGO STATE
+            // Intenta cargar el logo guardado, si no existe usa el archivo por defecto
+            const [logo, setLogo] = useState(localStorage.getItem('BAR_LOGO') || "A New Design (4).jpg");
+
             const fb = window.fb;
             const fileInputRef = useRef(null);
             
@@ -1061,6 +1261,27 @@
                 e.target.value = null;
             };
 
+            // NEW: Handle Logo Upload
+            const handleLogoChange = (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+
+                // Validar tamaño (Max 2MB para no saturar localStorage)
+                if (file.size > 2 * 1024 * 1024) {
+                    alert("Image too large. Please use an image under 2MB.");
+                    return;
+                }
+
+                const reader = new FileReader();
+                reader.onload = (ev) => {
+                    const base64 = ev.target.result;
+                    setLogo(base64);
+                    localStorage.setItem('BAR_LOGO', base64); // Guardar permanentemente
+                    showNotification("Logo Updated!");
+                };
+                reader.readAsDataURL(file);
+            };
+
             const updateItem = (itemId, fieldOrObj, value) => {
                 const newData = data.map(cat => ({
                     ...cat,
@@ -1142,6 +1363,8 @@
                             isCloud={isCloud} 
                             onScan={() => setIsScanning(true)} 
                             onShopping={generateShoppingList}
+                            logoSrc={logo}
+                            onLogoUpload={handleLogoChange}
                         />
                         
                         {/* Barra de Búsqueda Integrada en el bloque fijo */}
