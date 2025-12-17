@@ -556,6 +556,18 @@
 
             const bottleSizeOz = isWells ? 33.814 : 25.36;
             const shotsPerBottle = bottleSizeOz / 1.2; 
+            
+            // Verifica si el código escaneado coincide con cualquiera de los códigos en la cadena CSV
+            const checkBarcodeMatch = (decodedText, item) => {
+                if (item.barcode) {
+                    return item.barcode.split(',').some(code => code.trim() === decodedText);
+                }
+                return false;
+            };
+
+            // Para mostrar el código en la UI, solo mostramos el primer código si hay varios.
+            const displayBarcode = item.barcode ? item.barcode.split(',')[0].trim() : "Sin vincular";
+
 
             const handleSalesChange = (type, val) => {
                 let newBottles = type === 'bottles' ? val : (item.sold_bottles || "");
@@ -605,12 +617,13 @@
                                     <div className="flex items-center gap-2">
                                         <Icons.Barcode className="text-[#f0f6fc]/60" size={16} />
                                         <div className="flex flex-col">
-                                            <span className="text-[10px] uppercase text-[#f0f6fc]/50 font-bold">Unit Barcode</span>
-                                            <span className="text-xs font-mono text-white">{item.barcode || "Sin vincular"}</span>
+                                            <span className="text-[10px] uppercase text-[#f0f6fc]/50 font-bold">Unit Barcode (CSV)</span>
+                                            <span className="text-xs font-mono text-white">{displayBarcode}</span>
                                         </div>
                                     </div>
+                                    {/* Botón para escanear/vincular unidad */}
                                     <button onClick={() => onScanRequest(item.id, 'unit')} className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs px-3 py-2 rounded-lg font-bold shadow-lg shadow-indigo-900/20 active:scale-95 transition-all">
-                                        <Icons.Scan size={14} /> {item.barcode ? "Cambiar" : "Link Unit"}
+                                        <Icons.Scan size={14} /> {item.barcode ? "Cambiar/Añadir" : "Link Unit"}
                                     </button>
                                 </div>
 
@@ -682,8 +695,32 @@
 
         const INITIAL_DATA = [
             { category: "Premium Liquor (Tequila/Whisky)", items: [ createItem("liq-1", "Casamigos Blanco"), createItem("liq-2", "Casamigos Reposado"), createItem("liq-23", "Espolon Blanco"), createItem("liq-24", "Espolon Reposado"), createItem("liq-25", "Patron Cristalino"), createItem("liq-3", "Don Julio Blanco"), createItem("liq-4", "Don Julio Reposado"), createItem("liq-6", "Patron Silver"), createItem("liq-7", "Patron Reposado"), createItem("liq-8", "Clase Azul"), createItem("liq-9", "Grand Old Parr 12"), createItem("liq-11", "Crown Royal Regal"), createItem("liq-10", "Apple Crown Royal"), createItem("liq-26", "Hennessy VS"), createItem("liq-12", "Buchanans 12"), createItem("liq-13", "Johnnie Walker Black"), createItem("liq-14", "Capitan Morgan Spice"), createItem("liq-15", "Brugal Anejo"), createItem("liq-27", "Tito's Texas Vodka"), createItem("liq-16", "Grey Goose"), createItem("liq-17", "Jack Daniels Black"), createItem("liq-18", "WoodFord Reserve"), createItem("liq-19", "Fernet Branca"), createItem("liq-28", "Jagermeister"), createItem("liq-29", "Jameson"), createItem("liq-30", "Beefeater"), createItem("liq-32", "Wahaka Mezcal"), createItem("liq-31", "Malibu"), createItem("vin-4", "Moet Imperial Necta Rose"), createItem("liq-20", "Disaronno Amaretto"), createItem("vin-3", "Procecco Zonin"), createItem("liq-21", "Remy Martin"), createItem("liq-22", "Novo Fogo Silver Cachaca") ]},
-            { category: "Wells (House Liquor)", items: [ createItem("wel-1", "Bacardi Light"), createItem("wel-2", "Bacardi Lime"), createItem("wel-13", "Bacardi Limon"), createItem("wel-3", "Pirassununga Cachaça 51"), createItem("wel-4", "Barton Naturals Vodka"), createItem("wel-15", "Barton Gin"), createItem("wel-5", "Peach Schnapps Boston"), createItem("wel-6", "Montezuma White"), createItem("wel-7", "Triple Sec Boston"), createItem("wel-8", "Long Island Tea Mix"), createItem("wel-9", "Curacao Blue"), createItem("wel-10", "Melon Boston"), createItem("wel-14", "Sour Apple"), createItem("wel-11", "Sour Apple HW"), createItem("wel-12", "Sour Cherry Boston") ]},
-            { category: "Seltzer & Energy", items: [ createItem("sel-1", "Red Bull Sugar Free"), createItem("sel-2", "Red Bull Regular"), createItem("sel-3", "Red Bull Watermelon"), createItem("sel-4", "Red Bull Juneberry"), createItem("sel-5", "High Noon Variety Pack") ]},
+            { category: "Wells (House Liquor)", items: [ 
+                createItem("wel-1", "Bacardi Light"), 
+                createItem("wel-2", "Bacardi Lime"), 
+                createItem("wel-13", "Bacardi Limon"), 
+                createItem("wel-3", "Pirassununga Cachaça 51"), 
+                // BARTON VODKA: Usaremos dos códigos de ejemplo separados por coma.
+                {...createItem("wel-4", "Barton Naturals Vodka"), barcode: "123456789012,210987654321"}, 
+                createItem("wel-15", "Barton Gin"), 
+                createItem("wel-5", "Peach Schnapps Boston"), 
+                createItem("wel-6", "Montezuma White"), 
+                createItem("wel-7", "Triple Sec Boston"), 
+                createItem("wel-8", "Long Island Tea Mix"), 
+                createItem("wel-9", "Curacao Blue"), 
+                createItem("wel-10", "Melon Boston"), 
+                createItem("wel-14", "Sour Apple"), 
+                createItem("wel-11", "Sour Apple HW"), 
+                createItem("wel-12", "Sour Cherry Boston") 
+            ]},
+            { category: "Seltzer & Energy", items: [ 
+                createItem("sel-1", "Red Bull Sugar Free"), 
+                createItem("sel-2", "Red Bull Regular"), 
+                createItem("sel-3", "Red Bull Watermelon"), 
+                createItem("sel-4", "Red Bull Juneberry"), 
+                // HIGH NOON: Usaremos dos códigos de ejemplo separados por coma.
+                {...createItem("sel-5", "High Noon Variety Pack"), barcode: "987654321098,876543210987"}
+            ]},
             { category: "Beers", items: [ createItem("cer-1", "Pacifico"), createItem("cer-2", "Michelob Ultra"), createItem("cer-3", "Modelo Especial"), createItem("cer-5", "Corona"), createItem("cer-4", "Heineken") ]},
             { category: "Wines", items: [ createItem("vin-1", "Sangria"), createItem("vin-2", "Chardonnay El Enemigo"), createItem("vin-5", "Cafayate Malbec") ]}
         ];
@@ -797,6 +834,18 @@
             const [pendingBarcode, setPendingBarcode] = useState(null);
             const [quickScanItemId, setQuickScanItemId] = useState(null);
 
+            // Función auxiliar para buscar en códigos CSV
+            const checkBarcodeMatch = (decodedText, item) => {
+                if (item.barcode) {
+                    // Split the barcode string by comma and check if any code matches the decoded text
+                    return item.barcode.split(',').some(code => code.trim() === decodedText);
+                }
+                if (item.barcode_case) {
+                    return item.barcode_case === decodedText;
+                }
+                return false;
+            };
+
             const handleScanSuccess = (decodedText) => {
                 playSound('success'); 
                 setIsScanning(false); 
@@ -809,10 +858,29 @@
 
                     const newData = data.map(cat => ({ 
                         ...cat, 
-                        items: cat.items.map(item => item.id === id ? { ...item, [targetField]: decodedText } : item) 
+                        items: cat.items.map(item => {
+                            if (item.id === id) {
+                                // Lógica de actualización para códigos de barra de UNIDAD (soporta CSV)
+                                if (type === 'unit') {
+                                    // Limpiar códigos existentes y separarlos por coma
+                                    const existingCodes = item.barcode ? item.barcode.split(',').map(c => c.trim()) : [];
+
+                                    // Si el nuevo código no es un duplicado, añadirlo (CSV)
+                                    if (!existingCodes.includes(decodedText)) {
+                                        const newBarcode = existingCodes.length > 0 ? `${item.barcode},${decodedText}` : decodedText;
+                                        return { ...item, barcode: newBarcode };
+                                    } 
+                                    // Si ya existe, no hacer nada (no queremos duplicados)
+                                    return item;
+                                }
+                                // Lógica de actualización para códigos de barra de CAJA (reemplazo)
+                                return { ...item, [targetField]: decodedText };
+                            }
+                            return item;
+                        }) 
                     }));
                     saveData(newData); 
-                    showNotification(`Código de ${label} vinculado!`); 
+                    showNotification(`Código de ${label} vinculado/añadido!`); 
                     setScanningForItem(null); 
                     return;
                 }
@@ -821,7 +889,7 @@
                 let foundItem = null;
                 for (const cat of data) { 
                     // Busca coincidencias en unidad O en caja
-                    const match = cat.items.find(i => i.barcode === decodedText || i.barcode_case === decodedText); 
+                    const match = cat.items.find(i => checkBarcodeMatch(decodedText, i)); 
                     if (match) { foundItem = match; break; } 
                 }
                 
@@ -945,7 +1013,7 @@
                     {isScanning && scanningForItem && (
                         <div className="fixed top-16 left-0 right-0 z-[60] text-center pointer-events-none">
                             <span className={`px-4 py-1 rounded-full text-sm font-bold shadow-lg border ${scanningForItem.type === 'case' ? 'bg-amber-600 border-amber-400' : 'bg-indigo-600 border-indigo-400'} text-white`}>
-                                {scanningForItem.type === 'case' ? 'Vinculando CAJA (24pk)...' : 'Vinculando UNIDAD...'}
+                                {scanningForItem.type === 'case' ? 'Vinculando CAJA (24pk)...' : 'Vinculando UNIDAD/Añadiendo Código...'}
                             </span>
                         </div>
                     )}
