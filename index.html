@@ -353,7 +353,13 @@
                         }, (error) => {});
                     } catch(err) { console.error(err); setScanError("Camera error."); }
                 }
-                return () => { if (scannerRef.current) scannerRef.current.clear().catch(console.error); };
+                return () => { 
+                    if (scannerRef.current) {
+                        try {
+                            scannerRef.current.clear().catch(err => console.warn("Scanner clear error (safe to ignore)", err));
+                        } catch(e) { console.warn(e); }
+                    }
+                };
             }, []);
 
             return (
@@ -731,7 +737,8 @@
             const fb = window.fb;
             const fileInputRef = useRef(null);
             const [scanningForItem, setScanningForItem] = useState(null); 
-            const [scanAttempt, setScanAttempt] = useState(0); // Para forzar el reinicio de la cámara si falla
+            const [scanAttempt, setScanAttempt] = useState(0); 
+            const [isResetting, setIsResetting] = useState(false); // New state to handle camera reset pause
             const LOCAL_STORAGE_KEY = 'bar-inventory-final-v26'; 
 
             useEffect(() => {
@@ -887,11 +894,15 @@
                     setQuickScanItemId(foundItem.id); 
                     showNotification(`Abriendo: ${foundItem.name}`); 
                 } else { 
-                    // No encontrado: No cerramos el escáner, notificamos y reiniciamos
+                    // No encontrado: Notificar y resetear la cámara con pausa
                     playSound('error');
                     showNotification(`Código ${decodedText} no reconocido`);
-                    // Remontamos el componente ScannerModal incrementando el intento
-                    setScanAttempt(prev => prev + 1);
+                    
+                    // Iniciamos el ciclo de reset seguro
+                    setIsResetting(true); // Oculta el modal (unmount)
+                    setTimeout(() => {
+                        setIsResetting(false); // Vuelve a mostrar el modal (mount) tras 500ms
+                    }, 500);
                 }
             };
 
@@ -980,7 +991,9 @@
                     <ConfirmationModal isOpen={!!modalConfig} onClose={() => setModalConfig(null)} onConfirm={modalConfig?.onConfirm} title={modalConfig?.title} message={modalConfig?.message} isDestructive={modalConfig?.isDestructive} />
                     {showCharts && <ChartsView data={data} onClose={() => setShowCharts(false)} />}
                     {showShopping && <ShoppingListModal isOpen={showShopping} onClose={() => setShowShopping(false)} items={shoppingItems} />}
-                    {isScanning && (
+                    
+                    {/* MODAL DEL ESCÁNER CON LÓGICA DE RESETEO SEGURO */}
+                    {isScanning && !isResetting && (
                         <ScannerModal 
                             key={scanAttempt}
                             onScanSuccess={handleScanSuccess} 
