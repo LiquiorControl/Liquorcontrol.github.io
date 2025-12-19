@@ -43,6 +43,10 @@
         /* Custom size h-21 w-21 */
         .h-21 { height: 5.25rem; } /* 84px */
         .w-21 { width: 5.25rem; } /* 84px */
+        
+        /* Location Tabs Scroll Hide */
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     </style>
 </head>
 <body>
@@ -265,9 +269,9 @@
             );
         };
 
-        const QuickEditModal = ({ item, onClose, onUpdate }) => {
+        const QuickEditModal = ({ item, onClose, onUpdate, initialLocation = 'bodega' }) => {
             if (!item) return null;
-            const [activeField, setActiveField] = useState('bodega');
+            const [activeField, setActiveField] = useState(initialLocation);
             const currentValue = parseFloat(item[activeField]) || 0;
 
             const handleDelta = (delta) => {
@@ -762,6 +766,7 @@
             const LOCAL_STORAGE_KEY = 'bar-inventory-final-v26'; 
 
             const [showAddProduct, setShowAddProduct] = useState(false);
+            const [currentLocation, setCurrentLocation] = useState('bar1'); // Default location for scanning
 
             useEffect(() => {
                 const initApp = async () => {
@@ -912,7 +917,7 @@
                     playSound('success'); 
                     setIsScanning(false); 
                     setQuickScanItemId(foundItem.id); 
-                    showNotification(`Abriendo: ${foundItem.name}`); 
+                    showNotification(`Abriendo: ${foundItem.name} en ${currentLocation.toUpperCase()}`); 
                 } else { 
                     playSound('error');
                     showNotification(`Código ${decodedText} no reconocido`);
@@ -1011,12 +1016,39 @@
                             onLogoUpload={handleLogoChange}
                             onAddProduct={() => setShowAddProduct(true)}
                         />
+                        
+                        {/* --- NEW LOCATION CONTEXT SWITCHER --- */}
+                        <div className="bg-[#121212] border-b border-[#3A4048] py-2 px-4 overflow-x-auto no-scrollbar">
+                            <div className="flex justify-start md:justify-center items-center gap-2 min-w-max">
+                                <span className="text-[10px] text-[#f0f6fc]/40 uppercase font-bold tracking-widest mr-2 flex items-center gap-1"><Icons.MapPin size={10} /> Active Zone:</span>
+                                {[
+                                    {id: 'bar1', label: 'Bar 1'},
+                                    {id: 'bar2', label: 'Bar 2'},
+                                    {id: 'bodega', label: 'Storage'},
+                                    {id: 'barroluco', label: 'Barroluco'},
+                                ].map(loc => (
+                                    <button 
+                                        key={loc.id}
+                                        onClick={() => setCurrentLocation(loc.id)}
+                                        className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all border ${currentLocation === loc.id 
+                                            ? 'bg-indigo-600 border-indigo-500 text-white shadow-[0_0_15px_rgba(79,70,229,0.4)] scale-105' 
+                                            : 'bg-[#1D1F23] border-[#3A4048] text-[#f0f6fc]/50 hover:bg-[#3A4048] hover:text-white'}`}
+                                    >
+                                        {loc.label}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+
                         <div className="bg-[#0A0A0A] p-4 border-b border-[#3A4048]">
                             <div className="max-w-5xl mx-auto relative"><Icons.Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[#f0f6fc]/50" size={20} /><input type="text" placeholder="Search product..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full bg-[#1D1F23] rounded-xl pl-10 pr-4 py-3 text-white border border-[#3A4048] focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all placeholder:text-[#f0f6fc]/40" /></div>
                         </div>
                     </div>
                     <input type="file" ref={fileInputRef} style={{display:'none'}} accept=".json" onChange={handleRestoreFile} />
-                    <div className="pt-[320px] lg:pt-[230px]"></div>
+                    
+                    {/* Adjusted top padding to account for new location bar (approx +50px) */}
+                    <div className="pt-[370px] lg:pt-[280px]"></div> 
+                    
                     <main className="max-w-5xl mx-auto p-4 space-y-4">
                         {filteredData.length === 0 && <div className="text-center py-20 text-[#f0f6fc]/50"><p>No products found.</p></div>}
                         {filteredData.map((cat) => (
@@ -1031,7 +1063,6 @@
                         ))}
                     </main>
                     
-                    {/* FLOATING ACTION BUTTON FOR ADD */}
                     <button 
                         onClick={() => setShowAddProduct(true)}
                         className="fixed bottom-6 right-6 z-40 bg-indigo-600 text-white p-4 rounded-full shadow-2xl hover:bg-indigo-500 transition-transform active:scale-95 border border-indigo-400 group"
@@ -1062,6 +1093,7 @@
                                 setScanAttempt(0);
                             }} 
                             onUpdate={updateItem} 
+                            initialLocation={currentLocation}
                         />
                     )}
                     
