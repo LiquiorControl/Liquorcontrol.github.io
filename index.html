@@ -123,7 +123,14 @@
             "Red Bull Watermelon": 72,
 
             // Wines
-            "Cafayate Malbec": 6 
+            "Cafayate Malbec": 6,
+
+            // Non Alcoholic
+            "Coca Cola": 48,
+            "Diet Coke": 24,
+            "Sprite": 48,
+            "Ginger Ale": 24,
+            "Water Bottle": 96
         };
 
         class ErrorBoundary extends Component {
@@ -601,7 +608,7 @@
 
         const InventoryRow = ({ item, onUpdate, onLinkBarcode, pendingBarcode, isWells, categoryName, onScanRequest, onDelete }) => {
             const [isExpanded, setIsExpanded] = useState(false);
-            const isUnitBased = categoryName.includes("Beers") || categoryName.includes("Seltzer");
+            const isUnitBased = categoryName.includes("Beers") || categoryName.includes("Seltzer") || categoryName.includes("Non Alcoholic");
             const totalPhys = (parseFloat(item.bar1)||0) + (parseFloat(item.bar2)||0) + (parseFloat(item.bodega)||0) + (parseFloat(item.barroluco)||0);
             const totalStart = (parseFloat(item.start_bar1)||0) + (parseFloat(item.start_bar2)||0) + (parseFloat(item.start_bodega)||0) + (parseFloat(item.start_barroluco)||0);
             const purchases = parseFloat(item.purchases) || 0;
@@ -772,7 +779,8 @@
                 {...createItem("sel-5", "High Noon Variety Pack"), barcode: "987654321098,876543210987"}
             ]},
             { category: "Beers", items: [ createItem("cer-1", "Pacifico"), createItem("cer-2", "Michelob Ultra"), createItem("cer-3", "Modelo Especial"), createItem("cer-5", "Corona"), createItem("cer-4", "Heineken") ]},
-            { category: "Wines", items: [ createItem("vin-1", "Sangria"), createItem("vin-2", "Chardonnay El Enemigo"), createItem("vin-5", "Cafayate Malbec") ]}
+            { category: "Wines", items: [ createItem("vin-1", "Sangria"), createItem("vin-2", "Chardonnay El Enemigo"), createItem("vin-5", "Cafayate Malbec") ]},
+            { category: "Non Alcoholic", items: [ createItem("na-1", "Coca Cola"), createItem("na-2", "Diet Coke"), createItem("na-3", "Sprite"), createItem("na-4", "Ginger Ale"), createItem("na-5", "Water Bottle") ]}
         ];
 
         // Season logic
@@ -1105,7 +1113,7 @@
                 return data.map(cat => ({ ...cat, items: cat.items.filter(item => { const nameMatch = normalize(item.name).includes(term); const catMatch = normalize(cat.category).includes(term); const tightName = normalize(item.name).replace(/\s+/g, ''); const tightMatch = tightName.includes(tightTerm); return nameMatch || catMatch || tightMatch; }) })).filter(cat => cat.items.length > 0);
             }, [data, searchTerm]);
 
-            const getIcon = (n) => { if (n.includes("Premium")) return Icons.GlassWater; if (n.includes("Wells")) return Icons.Package; if (n.includes("Beers")) return Icons.Beer; if (n.includes("Wines")) return Icons.Wine; return Icons.RefreshCw; };
+            const getIcon = (n) => { if (n.includes("Premium")) return Icons.GlassWater; if (n.includes("Wells")) return Icons.Package; if (n.includes("Beers")) return Icons.Beer; if (n.includes("Wines")) return Icons.Wine; if (n.includes("Non Alcoholic")) return Icons.Leaf; return Icons.RefreshCw; };
             const activeQuickItem = useMemo(() => { if (!quickScanItemId) return null; for (const cat of data) { const found = cat.items.find(i => i.id === quickScanItemId); if (found) return found; } return null; }, [data, quickScanItemId]);
 
             if (loading) return <div className="flex items-center justify-center min-h-screen text-[#f0f6fc]/50">Loading...</div>;
