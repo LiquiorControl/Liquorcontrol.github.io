@@ -212,82 +212,6 @@
             } catch (e) { console.error("Audio play failed", e); }
         };
 
-        // --- LOGIN COMPONENT (UPDATED FOR CUSTOM CREDENTIALS) ---
-        const LoginView = ({ onLogin, onRegister, loading, error }) => {
-            const [email, setEmail] = useState("");
-            const [password, setPassword] = useState("");
-            const [isRegistering, setIsRegistering] = useState(false);
-
-            const handleSubmit = (e) => {
-                e.preventDefault();
-                if (isRegistering) {
-                    onRegister(email, password);
-                } else {
-                    onLogin(email, password);
-                }
-            };
-
-            return (
-                <div className="min-h-screen flex flex-col items-center justify-center p-4 animate-in" style={{ background: "linear-gradient(135deg, #0f172a, #000000)" }}>
-                    <div className="w-full max-w-md bg-[#1D1F23] border border-[#3A4048] rounded-2xl shadow-2xl p-8 relative overflow-hidden">
-                        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-indigo-500 via-purple-500 to-indigo-500"></div>
-                        <div className="text-center mb-8">
-                            <div className="mx-auto w-16 h-16 bg-indigo-900/30 rounded-full flex items-center justify-center mb-4 border border-indigo-500/30">
-                                <Icons.User size={32} className="text-indigo-400" />
-                            </div>
-                            <h1 className="text-3xl font-bold text-white mb-2">Bar Control</h1>
-                            <p className="text-[#f0f6fc]/50">Palmas Tropical Escape</p>
-                        </div>
-                        <form onSubmit={handleSubmit} className="space-y-6">
-                            <div>
-                                <label className="block text-xs font-bold text-[#f0f6fc]/60 uppercase mb-2">Usuario / Email</label>
-                                <input 
-                                    type="text" 
-                                    value={email}
-                                    onChange={(e) => setEmail(e.target.value)}
-                                    className="w-full bg-[#0A0A0A] border border-[#3A4048] rounded-xl px-4 py-3 text-white focus:outline-none focus:border-indigo-500 transition-colors font-medium"
-                                    placeholder="Usuario o Email"
-                                    required 
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-xs font-bold text-[#f0f6fc]/60 uppercase mb-2">Contraseña</label>
-                                <input 
-                                    type="password" 
-                                    value={password}
-                                    onChange={(e) => setPassword(e.target.value)}
-                                    className="w-full bg-[#0A0A0A] border border-[#3A4048] rounded-xl px-4 py-3 text-white focus:outline-none focus:border-indigo-500 transition-colors font-medium"
-                                    placeholder="••••••••"
-                                    required 
-                                />
-                            </div>
-                            {error && (
-                                <div className="p-3 bg-red-900/20 border border-red-500/50 rounded-lg flex items-center gap-3 animate-in">
-                                    <Icons.AlertTriangle size={18} className="text-red-400 shrink-0" />
-                                    <span className="text-red-200 text-sm">{error}</span>
-                                </div>
-                            )}
-                            <button 
-                                type="submit" 
-                                disabled={loading}
-                                className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-4 rounded-xl shadow-lg shadow-indigo-900/20 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                            >
-                                {loading ? <Icons.RefreshCw className="animate-spin" /> : (isRegistering ? "Crear Cuenta" : "Iniciar Sesión")}
-                            </button>
-                        </form>
-                        <div className="mt-6 text-center">
-                            <button 
-                                onClick={() => { setIsRegistering(!isRegistering); }}
-                                className="text-sm text-[#f0f6fc]/40 hover:text-indigo-400 transition-colors font-medium"
-                            >
-                                {isRegistering ? "¿Ya tienes cuenta? Inicia Sesión" : "¿No tienes cuenta? Crear una"}
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            );
-        };
-
         // --- COMPONENTS ---
         const ConfirmationModal = ({ isOpen, onClose, onConfirm, title, message, isDestructive }) => {
             if (!isOpen) return null;
@@ -808,13 +732,214 @@
             }
         };
 
+        // --- MISSING COMPONENTS RESTORED ---
+
+        const Header = ({ onNewPeriod, onClearAll, onDownload, onDownloadPDF, onShowCharts, onBackup, onRestore, isCloud, onScan, onShopping, logoSrc, onLogoUpload, onAddProduct, seasonData, onCycleSeason, onShowCount }) => {
+            return (
+                <header className="relative overflow-hidden bg-[#1D1F23] text-white shadow-2xl pb-4 transition-all duration-1000" style={{ background: seasonData.background }}>
+                    <div className="absolute inset-0 bg-black/20 backdrop-blur-[2px]"></div>
+                    <div className="relative z-10 p-4 pt-12 md:pt-4">
+                        <div className="flex flex-col md:flex-row justify-between items-center gap-6 max-w-7xl mx-auto">
+                            {/* Logo & Title */}
+                            <div className="flex items-center gap-5 w-full md:w-auto">
+                                <div className="relative group">
+                                    <div className="w-20 h-20 rounded-2xl overflow-hidden border-2 border-[#f0f6fc]/10 shadow-2xl group-hover:border-indigo-500/50 transition-all bg-[#0A0A0A]">
+                                        <img src={logoSrc} alt="Logo" className="w-full h-full object-cover" onError={(e) => {e.target.style.display='none'; e.target.nextSibling.style.display='flex'}} />
+                                        <div className="hidden w-full h-full items-center justify-center bg-[#1D1F23] text-[#f0f6fc]/20"><Icons.User size={24}/></div>
+                                        <label className="absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
+                                            <Icons.Upload size={20} className="text-white" />
+                                            <input type="file" accept="image/*" className="hidden" onChange={onLogoUpload} />
+                                        </label>
+                                    </div>
+                                    <div className={`absolute -bottom-2 -right-2 w-6 h-6 rounded-full border-2 border-[#1D1F23] flex items-center justify-center ${isCloud ? 'bg-emerald-500' : 'bg-amber-500'}`} title={isCloud ? "Cloud Synced" : "Local Mode"}>
+                                        <Icons.Cloud size={12} className="text-white" />
+                                    </div>
+                                </div>
+                                <div className="flex-1">
+                                    <h1 className="text-3xl md:text-4xl font-black tracking-tighter text-white drop-shadow-md">
+                                        BAR<span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-purple-400">CONTROL</span>
+                                    </h1>
+                                    <p className="text-[#f0f6fc]/60 text-xs md:text-sm font-medium tracking-wide flex items-center gap-2">
+                                        Palmas Tropical Escape 
+                                        <span className="w-1 h-1 rounded-full bg-[#f0f6fc]/30"></span> 
+                                        Master Inventory
+                                    </p>
+                                </div>
+                            </div>
+
+                            {/* Actions Toolbar */}
+                            <div className="grid grid-cols-4 md:flex items-center gap-2 w-full md:w-auto">
+                                <button onClick={onNewPeriod} className="flex flex-col items-center justify-center w-full md:w-20 h-16 rounded-xl bg-[#f0f6fc]/5 hover:bg-[#f0f6fc]/10 border border-[#f0f6fc]/10 transition-all group active:scale-95">
+                                    <Icons.RotateCcw size={20} className="text-indigo-400 mb-1 group-hover:rotate-180 transition-transform duration-500" />
+                                    <span className="text-[9px] font-bold uppercase tracking-wider text-[#f0f6fc]/60">Period</span>
+                                </button>
+                                <button onClick={onScan} className="flex flex-col items-center justify-center w-full md:w-20 h-16 rounded-xl bg-indigo-600/20 hover:bg-indigo-600/30 border border-indigo-500/30 transition-all group active:scale-95">
+                                    <Icons.Scan size={20} className="text-indigo-400 mb-1" />
+                                    <span className="text-[9px] font-bold uppercase tracking-wider text-indigo-200">Scan</span>
+                                </button>
+                                <button onClick={onShowCharts} className="flex flex-col items-center justify-center w-full md:w-20 h-16 rounded-xl bg-[#f0f6fc]/5 hover:bg-[#f0f6fc]/10 border border-[#f0f6fc]/10 transition-all group active:scale-95">
+                                    <Icons.BarChart size={20} className="text-emerald-400 mb-1" />
+                                    <span className="text-[9px] font-bold uppercase tracking-wider text-[#f0f6fc]/60">Stats</span>
+                                </button>
+                                <button onClick={onShopping} className="flex flex-col items-center justify-center w-full md:w-20 h-16 rounded-xl bg-[#f0f6fc]/5 hover:bg-[#f0f6fc]/10 border border-[#f0f6fc]/10 transition-all group active:scale-95">
+                                    <Icons.ShoppingCart size={20} className="text-amber-400 mb-1" />
+                                    <span className="text-[9px] font-bold uppercase tracking-wider text-[#f0f6fc]/60">Shop</span>
+                                </button>
+                                
+                                <button onClick={onCycleSeason} className={`flex flex-col items-center justify-center w-full md:w-20 h-16 rounded-xl border transition-all group active:scale-95 ${seasonData.color} ${seasonData.border}`}>
+                                    <seasonData.icon size={20} className={`${seasonData.accent} mb-1`} />
+                                    <span className={`text-[9px] font-bold uppercase tracking-wider ${seasonData.accent}`}>{seasonData.name}</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Secondary Toolbar (Hidden on small mobile unless needed, mostly for data ops) */}
+                        <div className="flex justify-center gap-3 mt-4 overflow-x-auto py-2 no-scrollbar">
+                             <button onClick={onShowCount} className="px-4 py-2 rounded-lg bg-black/20 hover:bg-black/40 text-[#f0f6fc]/70 text-xs font-bold border border-white/5 flex items-center gap-2 whitespace-nowrap"><Icons.List size={14} className="text-blue-400"/> Review Counts</button>
+                             <button onClick={onDownloadPDF} className="px-4 py-2 rounded-lg bg-black/20 hover:bg-black/40 text-[#f0f6fc]/70 text-xs font-bold border border-white/5 flex items-center gap-2 whitespace-nowrap"><Icons.FileText size={14} className="text-pink-400"/> PDF Report</button>
+                             <button onClick={onDownload} className="px-4 py-2 rounded-lg bg-black/20 hover:bg-black/40 text-[#f0f6fc]/70 text-xs font-bold border border-white/5 flex items-center gap-2 whitespace-nowrap"><Icons.Download size={14} className="text-teal-400"/> Excel/CSV</button>
+                             <button onClick={onBackup} className="px-4 py-2 rounded-lg bg-black/20 hover:bg-black/40 text-[#f0f6fc]/70 text-xs font-bold border border-white/5 flex items-center gap-2 whitespace-nowrap"><Icons.HardDrive size={14} className="text-orange-400"/> Backup</button>
+                             <button onClick={onRestore} className="px-4 py-2 rounded-lg bg-black/20 hover:bg-black/40 text-[#f0f6fc]/70 text-xs font-bold border border-white/5 flex items-center gap-2 whitespace-nowrap"><Icons.Upload size={14} className="text-violet-400"/> Restore</button>
+                             <button onClick={onClearAll} className="px-4 py-2 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 text-xs font-bold border border-red-500/20 flex items-center gap-2 whitespace-nowrap"><Icons.Trash size={14}/> Reset DB</button>
+                        </div>
+                    </div>
+                </header>
+            );
+        };
+
+        const CategoryHeader = ({ title, icon: Icon, isOpen, toggle }) => (
+            <div onClick={toggle} className="flex items-center justify-between p-4 mb-2 bg-[#1D1F23] border border-[#3A4048] rounded-2xl cursor-pointer hover:border-[#f0f6fc]/20 transition-all shadow-lg group select-none">
+                <div className="flex items-center gap-4">
+                    <div className="w-10 h-10 rounded-xl bg-[#0A0A0A] flex items-center justify-center border border-[#3A4048] group-hover:border-indigo-500/50 transition-colors">
+                        <Icon size={20} className="text-indigo-400" />
+                    </div>
+                    <h2 className="text-lg font-bold text-white tracking-wide">{title}</h2>
+                </div>
+                <div className={`text-[#f0f6fc]/40 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`}>
+                    <Icons.ChevronDown size={20} />
+                </div>
+            </div>
+        );
+
+        const InventoryRow = ({ item, onUpdate, pendingBarcode, isWells, categoryName, onScanRequest, onDelete }) => {
+            const getVal = (f) => item[f];
+            const handleChange = (f, v) => onUpdate(item.id, f, v);
+
+            const locations = [
+                { id: 'bar1', label: 'Bar 1', color: 'text-indigo-300' },
+                { id: 'bar2', label: 'Bar 2', color: 'text-purple-300' },
+                { id: 'bodega', label: 'Bodega', color: 'text-emerald-300' },
+                { id: 'barroluco', label: 'Barroluco', color: 'text-amber-300' }
+            ];
+
+            const stats = [
+                { id: 'start_bar1', label: 'Start B1' },
+                { id: 'start_bar2', label: 'Start B2' },
+                { id: 'start_bodega', label: 'Start Bod' },
+                { id: 'start_barroluco', label: 'Start Bar' },
+            ];
+            
+            // Calculate consumption on the fly for display
+            const totalPhys = (parseFloat(item.bar1)||0) + (parseFloat(item.bar2)||0) + (parseFloat(item.bodega)||0) + (parseFloat(item.barroluco)||0);
+            const totalStart = (parseFloat(item.start_bar1)||0) + (parseFloat(item.start_bar2)||0) + (parseFloat(item.start_bodega)||0) + (parseFloat(item.start_barroluco)||0);
+            const purchases = parseFloat(item.purchases)||0;
+            const sales = parseFloat(item.sales)||0;
+            const consumption = totalStart + purchases - totalPhys;
+            const diff = sales - consumption;
+            
+            const hasBarcode = item.barcode || item.barcode_case;
+
+            return (
+                <div className="bg-[#1D1F23] border border-[#3A4048] rounded-2xl p-4 shadow-md hover:shadow-xl transition-all hover:border-[#4A5462] relative group">
+                     <button 
+                        onClick={(e) => { e.stopPropagation(); onDelete(item); }}
+                        className="absolute top-4 right-4 text-[#3A4048] hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100 p-1"
+                        title="Delete Item"
+                    >
+                        <Icons.Trash size={16} />
+                    </button>
+
+                    <div className="flex justify-between items-start mb-4">
+                        <div className="flex-1 pr-8">
+                            <h3 className="text-white font-bold text-lg leading-tight">{item.name}</h3>
+                            <div className="flex items-center gap-2 mt-1">
+                                <span className="text-[10px] bg-[#3A4048] text-[#f0f6fc]/60 px-1.5 py-0.5 rounded font-mono border border-[#4A5462]">{item.id}</span>
+                                {hasBarcode && <span className="text-[10px] bg-indigo-900/30 text-indigo-400 px-1.5 py-0.5 rounded font-bold border border-indigo-500/30 flex items-center gap-1"><Icons.Barcode size={10}/> Linked</span>}
+                            </div>
+                        </div>
+                        <div className="flex flex-col gap-1 items-end">
+                            <div className={`text-xl font-black font-mono tracking-tight ${diff < -0.1 ? 'text-red-400' : diff > 0.1 ? 'text-emerald-400' : 'text-[#f0f6fc]/30'}`}>
+                                {diff > 0 ? '+' : ''}{diff.toFixed(1)}
+                            </div>
+                            <div className="text-[9px] uppercase font-bold text-[#f0f6fc]/30 tracking-wider">Diff</div>
+                        </div>
+                    </div>
+
+                    {/* Inputs Grid */}
+                    <div className="grid grid-cols-4 gap-2 mb-4">
+                        {locations.map(loc => (
+                            <div key={loc.id} className="relative group/input">
+                                <label className={`block text-[9px] font-bold uppercase mb-1.5 transition-colors ${item[loc.id] ? loc.color : 'text-[#f0f6fc]/30 group-focus-within/input:text-white'}`}>{loc.label}</label>
+                                <input 
+                                    type="number" 
+                                    inputMode="decimal"
+                                    value={item[loc.id]} 
+                                    onChange={(e) => handleChange(loc.id, e.target.value)} 
+                                    className={`w-full bg-[#0A0A0A] border ${item[loc.id] ? 'border-indigo-500/50 text-white' : 'border-[#3A4048] text-[#f0f6fc]/40'} rounded-lg py-2 px-1 text-center font-mono text-sm focus:outline-none focus:border-indigo-500 focus:text-white transition-all`}
+                                    placeholder="0"
+                                />
+                            </div>
+                        ))}
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3 pt-3 border-t border-[#3A4048]">
+                        <div>
+                             <label className="block text-[9px] font-bold uppercase text-[#f0f6fc]/40 mb-1">POS Sales</label>
+                             <div className="relative">
+                                <Icons.DollarSign size={12} className="absolute left-2 top-1/2 -translate-y-1/2 text-emerald-500/50" />
+                                <input 
+                                    type="number" 
+                                    inputMode="decimal"
+                                    value={item.sales} 
+                                    onChange={(e) => handleChange('sales', e.target.value)}
+                                    className="w-full bg-[#121212] border border-[#3A4048] rounded-lg py-1.5 pl-6 pr-2 text-right font-mono text-sm text-emerald-400 focus:outline-none focus:border-emerald-500 transition-colors"
+                                    placeholder="0" 
+                                />
+                             </div>
+                        </div>
+                        <div>
+                             <label className="block text-[9px] font-bold uppercase text-[#f0f6fc]/40 mb-1">Purchases</label>
+                             <div className="relative">
+                                <Icons.Plus size={12} className="absolute left-2 top-1/2 -translate-y-1/2 text-blue-500/50" />
+                                <input 
+                                    type="number" 
+                                    inputMode="decimal"
+                                    value={item.purchases} 
+                                    onChange={(e) => handleChange('purchases', e.target.value)}
+                                    className="w-full bg-[#121212] border border-[#3A4048] rounded-lg py-1.5 pl-6 pr-2 text-right font-mono text-sm text-blue-400 focus:outline-none focus:border-blue-500 transition-colors"
+                                    placeholder="0" 
+                                />
+                             </div>
+                        </div>
+                    </div>
+
+                    <div className="mt-4 flex justify-end gap-2 opacity-50 hover:opacity-100 transition-opacity">
+                        <button onClick={() => onScanRequest(item.id, 'unit')} className="text-[10px] bg-[#3A4048] hover:bg-indigo-600 hover:text-white px-2 py-1 rounded border border-[#4A5462] transition-colors flex items-center gap-1">
+                            <Icons.Barcode size={10} /> Link Unit
+                        </button>
+                        <button onClick={() => onScanRequest(item.id, 'case')} className="text-[10px] bg-[#3A4048] hover:bg-purple-600 hover:text-white px-2 py-1 rounded border border-[#4A5462] transition-colors flex items-center gap-1">
+                            <Icons.Box size={10} /> Link Case
+                        </button>
+                    </div>
+                </div>
+            );
+        };
+
         function App() {
             const [data, setData] = useState(INITIAL_DATA);
             const [loading, setLoading] = useState(true);
             const [isCloud, setIsCloud] = useState(false);
             const [user, setUser] = useState(null);
-            const [authLoading, setAuthLoading] = useState(false);
-            const [authError, setAuthError] = useState(null);
             const [logo, setLogo] = useState(localStorage.getItem('BAR_LOGO') || "A New Design (4).jpg");
             const fb = window.fb;
             const fileInputRef = useRef(null);
@@ -822,7 +947,6 @@
             const [scanAttempt, setScanAttempt] = useState(0); 
             const [isResetting, setIsResetting] = useState(false);
             const LOCAL_STORAGE_KEY = 'bar-inventory-final-v26'; 
-            const DEMO_USER_KEY = 'DEMO_USER'; // New key for persisting demo login
 
             const [showAddProduct, setShowAddProduct] = useState(false);
             const [currentLocation, setCurrentLocation] = useState('bar1'); 
@@ -856,15 +980,6 @@
 
             useEffect(() => {
                 const initApp = async () => {
-                    // Check for persistent DEMO USER first
-                    const demoUser = localStorage.getItem(DEMO_USER_KEY);
-                    if (demoUser) {
-                        setUser(JSON.parse(demoUser));
-                        setIsCloud(false);
-                        loadLocal();
-                        return;
-                    }
-
                     if (FIREBASE_CONFIG.apiKey && FIREBASE_CONFIG.apiKey !== "" && fb) {
                         try {
                             const app = fb.initializeApp(FIREBASE_CONFIG);
@@ -888,8 +1003,12 @@
                                         loadLocal(); 
                                     });
                                 } else {
-                                    // Not logged in
-                                    setLoading(false);
+                                    // Not logged in? Try anonymous login immediately
+                                    fb.signInAnonymously(auth).catch(e => {
+                                        console.warn("Anonymous auth failed", e);
+                                        setIsCloud(false);
+                                        loadLocal();
+                                    });
                                 }
                             });
                         } catch (e) { 
@@ -921,132 +1040,17 @@
                 initApp();
             }, []);
 
-            // --- AUTH FUNCTIONS ---
-            const handleLogin = async (inputEmail, inputPassword) => {
-                setAuthLoading(true);
-                setAuthError(null);
-                
-                // Trim inputs to avoid accidental spaces
-                const email = inputEmail.trim();
-                const password = inputPassword.trim();
-                
-                // --- HARDCODED CREDENTIALS CHECK ---
-                if (email === "palmas4647" && password === "Mendoza3197") {
-                    const adminUser = { 
-                        email: "palmas4647@local.admin", 
-                        uid: "admin-palmas-4647", 
-                        displayName: "Admin Palmas",
-                        isDemo: true 
-                    };
-                    setUser(adminUser);
-                    localStorage.setItem(DEMO_USER_KEY, JSON.stringify(adminUser));
-                    playSound('success');
-                    showNotification("Bienvenido Admin Palmas");
-                    loadLocal(); // Load data
-                    setAuthLoading(false);
-                    return;
-                }
-
-                // Guard clause: If it's not an email, don't try Firebase
-                if (!email.includes('@')) {
-                    setAuthError("Usuario no reconocido. (Si usa correo, verifique formato)");
-                    playSound('error');
-                    setAuthLoading(false);
-                    return;
-                }
-
-                try {
-                    const app = fb.initializeApp(FIREBASE_CONFIG);
-                    const auth = fb.getAuth(app);
-                    await fb.signInWithEmailAndPassword(auth, email, password);
-                    playSound('success');
-                } catch (error) {
-                    console.error("Login failed:", error);
-                    // FALLBACK TO DEMO MODE if config is missing or error occurs
-                    if (error.code === 'auth/configuration-not-found' || error.code === 'auth/operation-not-allowed' || error.code === 'auth/internal-error') {
-                        const demoUser = { email: email, uid: 'demo-' + Date.now(), isDemo: true };
-                        setUser(demoUser);
-                        localStorage.setItem(DEMO_USER_KEY, JSON.stringify(demoUser));
-                        playSound('success');
-                        showNotification("Modo Demo Local Activado (Backend no configurado)");
-                        loadLocal(); // Ensure data loads from local storage
-                    } else {
-                        let msg = "Error al iniciar sesión.";
-                        if (error.code === 'auth/invalid-email') msg = "Correo inválido.";
-                        if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') msg = "Credenciales incorrectas.";
-                        setAuthError(msg);
-                        playSound('error');
-                    }
-                } finally {
-                    setAuthLoading(false);
-                }
-            };
-
-            const handleRegister = async (email, password) => {
-                setAuthLoading(true);
-                setAuthError(null);
-                try {
-                    const app = fb.initializeApp(FIREBASE_CONFIG);
-                    const auth = fb.getAuth(app);
-                    await fb.createUserWithEmailAndPassword(auth, email, password);
-                    playSound('success');
-                    showNotification("Cuenta creada exitosamente!");
-                } catch (error) {
-                    console.error("Register failed:", error);
-                    // FALLBACK TO DEMO MODE if config is missing
-                    if (error.code === 'auth/configuration-not-found' || error.code === 'auth/operation-not-allowed' || error.code === 'auth/internal-error') {
-                         const demoUser = { email: email, uid: 'demo-' + Date.now(), isDemo: true };
-                        setUser(demoUser);
-                        localStorage.setItem(DEMO_USER_KEY, JSON.stringify(demoUser));
-                        playSound('success');
-                        showNotification("Cuenta creada en Modo Demo (Local)");
-                        loadLocal();
-                    } else {
-                        let msg = "Error al registrarse.";
-                        if (error.code === 'auth/email-already-in-use') msg = "Este correo ya está registrado.";
-                        if (error.code === 'auth/weak-password') msg = "La contraseña es muy débil (min 6 caracteres).";
-                        setAuthError(msg);
-                        playSound('error');
-                    }
-                } finally {
-                    setAuthLoading(false);
-                }
-            };
-
             const handleLogout = async () => {
                 try {
-                    // Clear local demo user
-                    localStorage.removeItem(DEMO_USER_KEY);
-                    
                     const app = fb.initializeApp(FIREBASE_CONFIG);
                     const auth = fb.getAuth(app);
                     await fb.signOut(auth);
                     setUser(null); // Force UI update
-                    showNotification("Sesión cerrada.");
+                    showNotification("Sesión reiniciada.");
                 } catch (e) {
                     console.error("Logout failed", e);
                     setUser(null);
                 }
-            };
-            
-            // Helper to load local data for manual logins
-            const loadLocal = () => {
-                 try {
-                    const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
-                    if (saved) {
-                        let loaded = JSON.parse(saved);
-                        INITIAL_DATA.forEach(initCat => {
-                            let targetCat = loaded.find(c => c.category === initCat.category);
-                            if (targetCat) {
-                                initCat.items.forEach(initItem => {
-                                    if (!targetCat.items.find(i => i.id === initItem.id)) { targetCat.items.push(initItem); }
-                                });
-                            } else { loaded.push(initCat); }
-                        });
-                        setData(loaded);
-                    } else setData(INITIAL_DATA);
-                } catch(e) {}
-                setLoading(false);
             };
 
             // --- PDF GENERATION LOGIC ---
@@ -1270,7 +1274,7 @@
 
             const saveData = (newData) => {
                 setData(newData);
-                if (isCloud && user && !user.isDemo) {
+                if (isCloud && user) {
                     try {
                         const app = fb.initializeApp(FIREBASE_CONFIG);
                         const db = fb.getFirestore(app);
@@ -1526,18 +1530,6 @@
 
             if (loading) return <div className="flex items-center justify-center min-h-screen text-[#f0f6fc]/50">Loading...</div>;
 
-            // --- IF NO USER, SHOW LOGIN SCREEN ---
-            if (!user) {
-                return (
-                    <LoginView 
-                        onLogin={handleLogin} 
-                        onRegister={handleRegister} 
-                        loading={authLoading} 
-                        error={authError} 
-                    />
-                );
-            }
-
             // --- IF USER, SHOW MAIN APP ---
             return (
                 <div className="min-h-screen bg-transparent font-sans pb-20">
@@ -1616,14 +1608,6 @@
                         <Icons.Plus size={28} />
                     </button>
                     
-                    {/* Logout Button (Small & Discreet) */}
-                    <button 
-                        onClick={handleLogout}
-                        className="fixed bottom-6 left-6 z-40 bg-[#1D1F23] text-[#f0f6fc]/40 p-3 rounded-full shadow-lg border border-[#3A4048] hover:text-red-400 hover:border-red-500/30 transition-all active:scale-95"
-                        title="Logout"
-                    >
-                        <Icons.LogOut size={20} />
-                    </button>
 
                     <ConfirmationModal isOpen={!!modalConfig} onClose={() => setModalConfig(null)} onConfirm={modalConfig?.onConfirm} title={modalConfig?.title} message={modalConfig?.message} isDestructive={modalConfig?.isDestructive} />
                     <ImportModal isOpen={showImportModal} onClose={() => { setShowImportModal(false); setPendingImportData(null); }} onReplace={handleReplaceData} onMerge={handleMergeData} />
