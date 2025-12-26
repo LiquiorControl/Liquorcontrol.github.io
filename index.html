@@ -352,8 +352,19 @@
         const QuickEditModal = ({ item, onClose, onUpdate, initialLocation = 'bodega' }) => {
             if (!item) return null;
             const [activeField, setActiveField] = useState(initialLocation);
-            const [customVal, setCustomVal] = useState(""); // Nuevo estado para valor manual
+            const [customVal, setCustomVal] = useState(""); 
+            const inputRef = useRef(null); // Ref para el foco automático
             const currentValue = parseFloat(item[activeField]) || 0;
+
+            // EFECTO: Enfocar el input automáticamente al abrir el modal
+            useEffect(() => {
+                const timer = setTimeout(() => {
+                    if (inputRef.current) {
+                        inputRef.current.focus();
+                    }
+                }, 100); // Pequeño retraso para asegurar que la animación terminó
+                return () => clearTimeout(timer);
+            }, []);
 
             const handleDelta = (delta) => {
                 if (delta > 0) playSound('add'); else playSound('sub');
@@ -367,7 +378,8 @@
                 if (!isNaN(val) && val !== 0) {
                     handleDelta(val); // Esto SUMA al valor actual usando la lógica existente
                     setCustomVal(""); // Limpia el input
-                    // showNotification(`Added +${val} to ${item.name}`); // Notification is in App
+                    // Mantener el foco por si quieren sumar otro número seguido
+                    if (inputRef.current) inputRef.current.focus();
                 }
             };
 
@@ -398,15 +410,16 @@
                                 <div className="text-[#f0f6fc]/50 text-sm uppercase font-bold tracking-wider mb-2">Total Count ({locations.find(l => l.id === activeField)?.label})</div>
                                 <div className="text-7xl font-black text-white font-mono tracking-tight tabular-nums mb-4">{currentValue}</div>
                                 
-                                {/* NEW: Manual Add Input */}
-                                <div className="flex gap-2 justify-center w-full max-w-xs mx-auto bg-[#0A0A0A] p-2 rounded-xl border border-[#3A4048]">
+                                {/* NEW: Manual Add Input con AUTO FOCUS */}
+                                <div className="flex gap-2 justify-center w-full max-w-xs mx-auto bg-[#0A0A0A] p-2 rounded-xl border border-[#3A4048] shadow-lg shadow-indigo-900/10">
                                     <input 
+                                        ref={inputRef}
                                         type="number" 
                                         placeholder="Qty found..." 
                                         value={customVal}
                                         onChange={(e) => setCustomVal(e.target.value)}
                                         onKeyDown={(e) => e.key === 'Enter' && handleCustomAdd()}
-                                        className="w-full bg-transparent text-white text-center font-bold focus:outline-none placeholder:text-[#f0f6fc]/30"
+                                        className="w-full bg-transparent text-white text-center font-bold focus:outline-none placeholder:text-[#f0f6fc]/30 text-lg"
                                         autoFocus
                                     />
                                     <button onClick={handleCustomAdd} className="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-lg font-bold text-sm shadow-lg whitespace-nowrap transition-transform active:scale-95">
