@@ -353,18 +353,10 @@
             if (!item) return null;
             const [activeField, setActiveField] = useState(initialLocation);
             const [customVal, setCustomVal] = useState(""); 
-            const inputRef = useRef(null); // Ref para el foco automático
+            const inputRef = useRef(null); 
             const currentValue = parseFloat(item[activeField]) || 0;
 
-            // EFECTO: Enfocar el input automáticamente al abrir el modal
-            useEffect(() => {
-                const timer = setTimeout(() => {
-                    if (inputRef.current) {
-                        inputRef.current.focus();
-                    }
-                }, 100); // Pequeño retraso para asegurar que la animación terminó
-                return () => clearTimeout(timer);
-            }, []);
+            // NOTA: Se eliminó el useEffect de auto-focus para que el teclado no tape los botones al abrir.
 
             const handleDelta = (delta) => {
                 if (delta > 0) playSound('add'); else playSound('sub');
@@ -376,10 +368,8 @@
             const handleCustomAdd = () => {
                 const val = parseFloat(customVal);
                 if (!isNaN(val) && val !== 0) {
-                    handleDelta(val); // Esto SUMA al valor actual usando la lógica existente
-                    setCustomVal(""); // Limpia el input
-                    // Mantener el foco por si quieren sumar otro número seguido
-                    if (inputRef.current) inputRef.current.focus();
+                    handleDelta(val); // Suma al total
+                    setCustomVal(""); // Limpia el campo
                 }
             };
 
@@ -395,7 +385,7 @@
                 <div className="fixed inset-0 bg-black/90 flex flex-col items-center justify-center z-[60] backdrop-blur-md animate-in p-4">
                     <div className="bg-[#1D1F23] border border-[#3A4048] w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
                         <div className="p-4 bg-[#121212] border-b border-[#3A4048] flex justify-between items-center">
-                            <div><h2 className="text-xl font-bold text-white leading-tight">{item.name}</h2><p className="text-xs text-[#f0f6fc]/50 font-mono mt-1">Quick Edit Mode (Add to Total)</p></div>
+                            <div><h2 className="text-xl font-bold text-white leading-tight">{item.name}</h2><p className="text-xs text-[#f0f6fc]/50 font-mono mt-1">Quick Edit Mode</p></div>
                             <button onClick={onClose} className="bg-[#3A4048] hover:bg-[#4A5462] text-white p-2 rounded-full transition-colors"><span className="text-xl px-2">&times;</span></button>
                         </div>
                         <div className="p-2 bg-[#1D1F23] border-b border-[#3A4048] overflow-x-auto">
@@ -407,29 +397,32 @@
                         </div>
                         <div className="flex-1 p-6 flex flex-col items-center justify-center bg-gradient-to-b from-[#1D1F23] to-[#121212] overflow-y-auto">
                             <div className="text-center mb-6 w-full">
-                                <div className="text-[#f0f6fc]/50 text-sm uppercase font-bold tracking-wider mb-2">Total Count ({locations.find(l => l.id === activeField)?.label})</div>
-                                <div className="text-7xl font-black text-white font-mono tracking-tight tabular-nums mb-4">{currentValue}</div>
+                                {/* NUMERO 1: TOTAL ACTUAL */}
+                                <div className="text-[#f0f6fc]/50 text-xs uppercase font-bold tracking-wider mb-1">Total Actual ({locations.find(l => l.id === activeField)?.label})</div>
+                                <div className="text-6xl font-black text-white font-mono tracking-tight tabular-nums mb-6">{currentValue}</div>
                                 
-                                {/* NEW: Manual Add Input con AUTO FOCUS */}
-                                <div className="flex gap-2 justify-center w-full max-w-xs mx-auto bg-[#0A0A0A] p-2 rounded-xl border border-[#3A4048] shadow-lg shadow-indigo-900/10">
-                                    <input 
-                                        ref={inputRef}
-                                        type="number" 
-                                        placeholder="Qty found..." 
-                                        value={customVal}
-                                        onChange={(e) => setCustomVal(e.target.value)}
-                                        onKeyDown={(e) => e.key === 'Enter' && handleCustomAdd()}
-                                        className="w-full bg-transparent text-white text-center font-bold focus:outline-none placeholder:text-[#f0f6fc]/30 text-lg"
-                                        autoFocus
-                                    />
-                                    <button onClick={handleCustomAdd} className="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-lg font-bold text-sm shadow-lg whitespace-nowrap transition-transform active:scale-95">
-                                        ADD +
-                                    </button>
+                                {/* NUMERO 2: CANTIDAD A SUMAR (INPUT) */}
+                                <div className="flex flex-col gap-1 max-w-xs mx-auto">
+                                    <div className="text-[#f0f6fc]/40 text-[10px] uppercase font-bold tracking-wider text-left pl-1">Cantidad Encontrada (A Sumar)</div>
+                                    <div className="flex gap-2 bg-[#0A0A0A] p-2 rounded-xl border border-[#3A4048] shadow-lg shadow-indigo-900/10">
+                                        <input 
+                                            ref={inputRef}
+                                            type="number" 
+                                            placeholder="0" 
+                                            value={customVal}
+                                            onChange={(e) => setCustomVal(e.target.value)}
+                                            onKeyDown={(e) => e.key === 'Enter' && handleCustomAdd()}
+                                            className="w-full bg-transparent text-white text-center font-bold focus:outline-none placeholder:text-[#f0f6fc]/20 text-xl"
+                                            // Sin autoFocus para evitar el teclado
+                                        />
+                                        <button onClick={handleCustomAdd} className="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-lg font-bold text-sm shadow-lg whitespace-nowrap transition-transform active:scale-95">
+                                            ADD +
+                                        </button>
+                                    </div>
                                 </div>
-                                <div className="text-[10px] text-[#f0f6fc]/30 mt-2">Enter amount found here and click ADD to sum it.</div>
                             </div>
 
-                            <div className="w-full grid grid-cols-2 gap-6">
+                            <div className="w-full grid grid-cols-2 gap-6 mt-2">
                                 <div className="flex flex-col gap-2 items-end">
                                     <button onClick={() => handleDelta(-24)} className="w-full bg-red-900/20 hover:bg-red-900/40 text-red-500 border border-red-900/50 py-2 rounded-xl font-bold text-sm active:scale-95 transition-all">- 24</button>
                                     <button onClick={() => handleDelta(-12)} className="w-full bg-red-900/20 hover:bg-red-900/40 text-red-500 border border-red-900/50 py-2 rounded-xl font-bold text-sm active:scale-95 transition-all">- 12</button>
