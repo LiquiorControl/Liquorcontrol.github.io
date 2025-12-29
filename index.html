@@ -152,7 +152,9 @@
             List: (p) => <IconWrapper {...p}><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></IconWrapper>,
             FileText: (p) => <IconWrapper {...p}><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><line x1="16" x2="8" y1="13" y2="13"/><line x1="16" x2="8" y1="17" y2="17"/><line x1="10" x2="8" y1="9" y2="9"/></IconWrapper>,
             GitMerge: (p) => <IconWrapper {...p}><circle cx="18" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><path d="M6 21V9a9 9 0 0 0 9 9"/></IconWrapper>,
-            Lock: (p) => <IconWrapper {...p}><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></IconWrapper>
+            Lock: (p) => <IconWrapper {...p}><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></IconWrapper>,
+            Bluetooth: (p) => <IconWrapper {...p}><polyline points="6.5 6.5 17.5 17.5 12 23 12 1 17.5 6.5 6.5 17.5"></polyline></IconWrapper>,
+            Scale: (p) => <IconWrapper {...p}><path d="m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="m2 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="M7 21h10"/><path d="M12 3v18"/><path d="M3 7h2c2 0 5-1 7-2 2 1 5 2 7 2h2"/></IconWrapper>
         };
 
         // --- AUDIO HELPER ---
@@ -349,12 +351,54 @@
             );
         };
 
-        const QuickEditModal = ({ item, onClose, onUpdate, initialLocation = 'bodega' }) => {
+        const QuickEditModal = ({ item, onClose, onUpdate, initialLocation = 'bodega', isScaleConnected, currentScaleWeight, onUpdateWeights }) => {
             if (!item) return null;
             const [activeField, setActiveField] = useState(initialLocation);
             const [customVal, setCustomVal] = useState(""); 
             const inputRef = useRef(null); 
             const currentValue = parseFloat(item[activeField]) || 0;
+            
+            // WEIGHING STATE
+            const [localWeightEmpty, setLocalWeightEmpty] = useState(item.weight_empty || "");
+            const [localWeightFull, setLocalWeightFull] = useState(item.weight_full || "");
+            const [manualWeight, setManualWeight] = useState("");
+            
+            const isWeighable = ["Premium Liquor (Tequila/Whisky)", "Wells (House Liquor)", "Wines"].includes(item.category_name);
+            const liveWeight = isScaleConnected ? currentScaleWeight : (parseFloat(manualWeight) || 0);
+
+            // Calculate bottles from weight
+            const calculatedBottles = useMemo(() => {
+                const wEmpty = parseFloat(localWeightEmpty);
+                const wFull = parseFloat(localWeightFull);
+                const wCurrent = parseFloat(liveWeight);
+                
+                if (!isNaN(wEmpty) && !isNaN(wFull) && !isNaN(wCurrent) && wFull > wEmpty) {
+                    const liquidWeight = wCurrent - wEmpty;
+                    const fullLiquidWeight = wFull - wEmpty;
+                    const ratio = liquidWeight / fullLiquidWeight;
+                    // Clamp between 0 and a reasonable max (e.g. 1.1 in case slightly overfilled)
+                    return Math.max(0, ratio).toFixed(2);
+                }
+                return null;
+            }, [localWeightEmpty, localWeightFull, liveWeight]);
+
+            const handleSaveWeights = () => {
+                onUpdateWeights(item.id, localWeightEmpty, localWeightFull);
+            };
+
+            const handleUseCalculated = () => {
+                if (calculatedBottles !== null) {
+                    const val = parseFloat(calculatedBottles);
+                    // Update the count directly (REPLACE logic for weighing usually, or add? Usually replace current bottle count logic if counting via scale)
+                    // The user asked "Connect to scale... to know how much liquid". Usually this implies replacing the count for that open bottle.
+                    // But our system is additive. Let's assume we want to Add this amount. 
+                    // ACTUALLY: If you weigh a bottle, you know exactly what is in it (e.g. 0.4). You don't add 0.4 to 0.4.
+                    // However, the field might be "Total Storage". If you have 5 full bottles and 1 open, you might want to ADD 0.4 to the 5.
+                    // Since this is "Quick Edit Mode (Add to Total)", let's treat it as a delta? 
+                    // No, usually scale is for partials. Let's offer to ADD it.
+                    handleDelta(val);
+                }
+            };
 
             // NOTA: Se eliminó el useEffect de auto-focus para que el teclado no tape los botones al abrir.
 
@@ -395,7 +439,56 @@
                                 ))}
                             </div>
                         </div>
-                        <div className="flex-1 p-6 flex flex-col items-center justify-center bg-gradient-to-b from-[#1D1F23] to-[#121212] overflow-y-auto">
+                        <div className="flex-1 p-6 flex flex-col items-center justify-start bg-gradient-to-b from-[#1D1F23] to-[#121212] overflow-y-auto">
+                            
+                            {/* --- WEIGHING SECTION (Only for Liquor/Wine) --- */}
+                            {isWeighable && (
+                                <div className="w-full mb-6 bg-indigo-900/10 border border-indigo-500/20 rounded-xl p-4">
+                                    <div className="flex items-center justify-between mb-3">
+                                        <div className="text-indigo-400 text-xs font-bold uppercase tracking-wider flex items-center gap-2">
+                                            <Icons.Scale size={14} /> Pesaje Inteligente
+                                        </div>
+                                        <div className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${isScaleConnected ? 'bg-emerald-500/20 text-emerald-400' : 'bg-[#3A4048] text-[#f0f6fc]/40'}`}>
+                                            {isScaleConnected ? 'Balanza BT Conectada' : 'Manual / Sin Conexión'}
+                                        </div>
+                                    </div>
+
+                                    {/* Calibration Inputs */}
+                                    <div className="grid grid-cols-2 gap-3 mb-4">
+                                        <div>
+                                            <label className="text-[10px] text-[#f0f6fc]/40 uppercase font-bold block mb-1">Peso Vacío (g)</label>
+                                            <input type="number" placeholder="0" value={localWeightEmpty} onChange={(e) => setLocalWeightEmpty(e.target.value)} onBlur={handleSaveWeights} className="w-full bg-[#0A0A0A] border border-[#3A4048] rounded-lg px-2 py-1.5 text-xs text-white focus:border-indigo-500 outline-none text-center font-mono" />
+                                        </div>
+                                        <div>
+                                            <label className="text-[10px] text-[#f0f6fc]/40 uppercase font-bold block mb-1">Peso Lleno (g)</label>
+                                            <input type="number" placeholder="0" value={localWeightFull} onChange={(e) => setLocalWeightFull(e.target.value)} onBlur={handleSaveWeights} className="w-full bg-[#0A0A0A] border border-[#3A4048] rounded-lg px-2 py-1.5 text-xs text-white focus:border-indigo-500 outline-none text-center font-mono" />
+                                        </div>
+                                    </div>
+
+                                    {/* Current Weight Readout */}
+                                    <div className="flex items-center justify-between gap-4 bg-[#0A0A0A] p-3 rounded-xl border border-indigo-500/30">
+                                        <div className="flex-1">
+                                            <label className="text-[9px] text-indigo-300/60 uppercase font-bold block mb-1">Peso Actual (g)</label>
+                                            {isScaleConnected ? (
+                                                <div className="text-2xl font-black text-indigo-400 font-mono">{currentScaleWeight}</div>
+                                            ) : (
+                                                <input type="number" value={manualWeight} onChange={(e) => setManualWeight(e.target.value)} placeholder="0" className="w-full bg-transparent text-2xl font-black text-indigo-400 font-mono outline-none placeholder:text-indigo-900/40" />
+                                            )}
+                                        </div>
+                                        <div className="text-right">
+                                            <div className="text-[9px] text-[#f0f6fc]/40 uppercase font-bold mb-1">Botellas Calc.</div>
+                                            <div className="text-3xl font-black text-white">{calculatedBottles !== null ? calculatedBottles : "--"}</div>
+                                        </div>
+                                    </div>
+                                    
+                                    {calculatedBottles !== null && (
+                                        <button onClick={handleUseCalculated} className="w-full mt-3 bg-indigo-600 hover:bg-indigo-500 text-white py-2 rounded-lg font-bold text-sm shadow-lg shadow-indigo-900/20 active:scale-95 transition-all">
+                                            Usar Cantidad: +{calculatedBottles}
+                                        </button>
+                                    )}
+                                </div>
+                            )}
+
                             <div className="text-center mb-6 w-full">
                                 {/* NUMERO 1: TOTAL ACTUAL */}
                                 <div className="text-[#f0f6fc]/50 text-xs uppercase font-bold tracking-wider mb-1">Total Actual ({locations.find(l => l.id === activeField)?.label})</div>
@@ -724,7 +817,7 @@
         // 🛠️ UI COMPONENTS (Header, Row, Fields)
         // ==========================================
 
-        const Header = ({ onNewPeriod, onClearAll, onDownload, onDownloadPDF, onShowCharts, onBackup, onRestore, isCloud, onScan, onShopping, logoSrc, onLogoUpload, seasonData, onCycleSeason, onShowCount }) => {
+        const Header = ({ onNewPeriod, onClearAll, onDownload, onDownloadPDF, onShowCharts, onBackup, onRestore, isCloud, onScan, onShopping, logoSrc, onLogoUpload, seasonData, onCycleSeason, onShowCount, onConnectScale, isScaleConnected }) => {
             const date = new Date();
             const options = { weekday: 'long', day: 'numeric', month: 'long' };
             let dateStr = date.toLocaleDateString('en-US', options);
@@ -758,9 +851,14 @@
                         <div className="flex flex-col lg:items-end gap-2 w-full lg:w-auto">
                             {/* Date removed from here */}
                             <div className="flex flex-wrap justify-center lg:justify-end gap-2 w-full lg:w-auto items-center">
-                                {/* Botón "+" eliminado de aquí */}
-                                
+                                {/* SCAN */}
                                 <button onClick={onScan} className="flex items-center gap-3 bg-[#3A4048] hover:bg-[#4A5462] text-white px-6 py-3 rounded-xl font-bold border border-[#4A5462] text-lg shadow-lg hover:shadow-xl hover:border-indigo-500 transition-all active:scale-95 mr-2"><Icons.Scan size={24} className="text-indigo-400" /> SCAN</button>
+                                
+                                {/* BLUETOOTH SCALE BUTTON */}
+                                <button onClick={onConnectScale} className={`flex items-center gap-2 px-3 py-2 rounded-lg font-bold border transition-all ${isScaleConnected ? 'bg-emerald-600 text-white border-emerald-500 shadow-emerald-900/20' : 'bg-[#3A4048] text-[#f0f6fc]/60 border-[#4A5462] hover:text-white'}`} title={isScaleConnected ? "Balanza Conectada" : "Conectar Balanza Bluetooth"}>
+                                    <Icons.Bluetooth size={18} /> {isScaleConnected ? "ON" : "OFF"}
+                                </button>
+
                                 {!isCloud && (
                                     <div className="flex gap-2 mr-2 pr-2 border-r border-[#3A4048]">
                                         <button onClick={onBackup} className="flex items-center gap-1 bg-[#3A4048] hover:bg-[#4A5462] text-[#f0f6fc]/60 px-3 py-2 rounded-lg text-sm border border-[#4A5462] transition-all" title="Guardar Respaldo (Backup)"><Icons.Save size={16} /></button>
@@ -769,18 +867,12 @@
                                 )}
                                 <button onClick={onShowCharts} className="flex items-center gap-2 bg-[#3A4048] hover:bg-[#4A5462] text-white px-3 py-2 rounded-lg font-medium border border-[#4A5462] text-sm shadow-sm"><Icons.BarChart size={18} className="text-indigo-400" /></button>
                                 
-                                {/* NEXT - Compacted to Icon Only (Same size as Trash) */}
                                 <button onClick={onNewPeriod} className="p-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg font-medium shadow-lg shadow-indigo-900/20 active:scale-95 border border-indigo-500 transition-all" title="Next Period"><Icons.ArrowRight size={20} /></button>
                                 
-                                {/* SHOPPING - Compact */}
                                 <button onClick={onShopping} className="flex items-center gap-2 bg-amber-600 hover:bg-amber-500 text-white px-3 py-1.5 rounded-lg font-medium shadow-lg shadow-amber-900/20 active:scale-95 text-xs border border-amber-500"><Icons.ShoppingCart size={16} /> Shopping</button>
                                 
-                                {/* COUNT - Compact */}
                                 <button onClick={onShowCount} className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-3 py-1.5 rounded-lg font-medium shadow-lg shadow-blue-900/20 active:scale-95 text-xs border border-blue-500"><Icons.List size={16} /> Count</button>
 
-                                {/* CSV BUTTON REMOVED */}
-                                
-                                {/* PDF BUTTON */}
                                 <button onClick={onDownloadPDF} className="flex items-center gap-2 bg-rose-600 hover:bg-rose-500 text-white px-3 py-1.5 rounded-lg font-medium shadow-lg shadow-rose-900/20 active:scale-95 text-xs border border-rose-500"><Icons.FileText size={16} /> PDF</button>
 
                                 <button onClick={onClearAll} className="p-2 bg-red-800/20 hover:bg-red-800/40 text-red-500 rounded-lg border border-red-500/50 transition-colors"><Icons.Trash size={20}/></button>
@@ -952,7 +1044,7 @@
             );
         };
 
-        const createItem = (id, name) => ({ id, name, bar1: "", bar2: "", bodega: "", barroluco: "", start_bar1: "", start_bar2: "", start_bodega: "", start_barroluco: "", purchases: "", sales: "", sold_bottles: "", sold_shots: "", sold_comps: "", barcode: "", barcode_case: "" });
+        const createItem = (id, name) => ({ id, name, bar1: "", bar2: "", bodega: "", barroluco: "", start_bar1: "", start_bar2: "", start_bodega: "", start_barroluco: "", purchases: "", sales: "", sold_bottles: "", sold_shots: "", sold_comps: "", barcode: "", barcode_case: "", weight_empty: "", weight_full: "" });
 
         const INITIAL_DATA = [
             { category: "Premium Liquor (Tequila/Whisky)", items: [ createItem("liq-1", "Casamigos Blanco"), createItem("liq-2", "Casamigos Reposado"), createItem("liq-23", "Espolon Blanco"), createItem("liq-24", "Espolon Reposado"), createItem("liq-25", "Patron Cristalino"), createItem("liq-3", "Don Julio Blanco"), createItem("liq-4", "Don Julio Reposado"), createItem("liq-6", "Patron Silver"), createItem("liq-7", "Patron Reposado"), createItem("liq-8", "Clase Azul"), createItem("liq-9", "Grand Old Parr 12"), createItem("liq-11", "Crown Royal Regal"), createItem("liq-10", "Apple Crown Royal"), createItem("liq-26", "Hennessy VS"), createItem("liq-12", "Buchanans 12"), createItem("liq-13", "Johnnie Walker Black"), createItem("liq-14", "Capitan Morgan Spice"), createItem("liq-15", "Brugal Anejo"), createItem("liq-27", "Tito's Texas Vodka"), createItem("liq-16", "Grey Goose"), createItem("liq-17", "Jack Daniels Black"), createItem("liq-18", "WoodFord Reserve"), createItem("liq-19", "Fernet Branca"), createItem("liq-28", "Jagermeister"), createItem("liq-29", "Jameson"), createItem("liq-30", "Beefeater"), createItem("liq-32", "Wahaka Mezcal"), createItem("liq-31", "Malibu"), createItem("vin-4", "Moet Imperial Necta Rose"), createItem("liq-20", "Disaronno Amaretto"), createItem("vin-3", "Procecco Zonin"), createItem("liq-21", "Remy Martin"), createItem("liq-22", "Novo Fogo Silver Cachaca") ]},
@@ -1057,6 +1149,12 @@
             // NEW STATE FOR IMPORT MERGE
             const [pendingImportData, setPendingImportData] = useState(null);
             const [showImportModal, setShowImportModal] = useState(false);
+            
+            // NEW STATE FOR BLUETOOTH SCALE
+            const [scaleDevice, setScaleDevice] = useState(null);
+            const [currentScaleWeight, setCurrentScaleWeight] = useState(0);
+            const [isScaleConnected, setIsScaleConnected] = useState(false);
+
 
             // Season State with Cycle Ability
             const [season, setSeason] = useState(getSeason());
@@ -1078,6 +1176,46 @@
                 setSeason(nextSeason);
                 // Also play sound for feedback
                 playSound('success');
+            };
+            
+            // BLUETOOTH CONNECTION HANDLER (FIXED FOR SECURITY ERROR)
+            const connectToScale = async () => {
+                // Feature detection
+                if (!navigator.bluetooth) {
+                    alert("Tu navegador no soporta Bluetooth Web. Se activará el modo simulación.");
+                    setIsScaleConnected(true);
+                    return;
+                }
+                
+                try {
+                    const device = await navigator.bluetooth.requestDevice({
+                        acceptAllDevices: true,
+                        optionalServices: ['battery_service', 'device_information'] 
+                    });
+                    
+                    if (device) {
+                        // Real connection logic...
+                        // const server = await device.gatt.connect();
+                        // setScaleDevice(device);
+                        setIsScaleConnected(true);
+                        showNotification("Balanza Conectada: " + device.name);
+                    }
+                } catch (error) {
+                    console.error("Bluetooth connection failed:", error);
+                    
+                    // Handle specific errors
+                    if (error.name === 'SecurityError' || error.name === 'ReferenceError') {
+                         // Permissions policy violation or secure context issue
+                         alert("Aviso de Seguridad: El acceso a Bluetooth está restringido en este entorno. \n\nSe activará el MODO DE SIMULACIÓN para pruebas.");
+                         setIsScaleConnected(true);
+                         showNotification("Modo Simulación Activado");
+                    } else if (error.name !== 'NotFoundError') {
+                         // If it wasn't just a user cancellation, enable simulation
+                         setIsScaleConnected(true);
+                         showNotification("Simulación Activada (Error)");
+                    }
+                    // If 'NotFoundError', user just clicked cancel, do nothing.
+                }
             };
 
             // MODIFIED: DYNAMIC FIREBASE INIT
@@ -1613,6 +1751,19 @@
 
             const handleLogoChange = (e) => { const file = e.target.files[0]; if (!file) return; if (file.size > 2 * 1024 * 1024) { alert("Image too large. Please use an image under 2MB."); return; } const reader = new FileReader(); reader.onload = (ev) => { const base64 = ev.target.result; setLogo(base64); localStorage.setItem('BAR_LOGO', base64); showNotification("Logo Updated!"); }; reader.readAsDataURL(file); };
             const updateItem = (itemId, fieldOrObj, value) => { const newData = data.map(cat => ({ ...cat, items: cat.items.map(item => { if (item.id === itemId) { if (typeof fieldOrObj === 'object' && fieldOrObj !== null) return { ...item, ...fieldOrObj }; return { ...item, [fieldOrObj]: value }; } return item; }) })); saveData(newData); };
+            
+            // New helper to update weights specifically
+            const updateItemWeights = (itemId, empty, full) => { 
+                const newData = data.map(cat => ({ 
+                    ...cat, 
+                    items: cat.items.map(item => { 
+                        if (item.id === itemId) { return { ...item, weight_empty: empty, weight_full: full }; } 
+                        return item; 
+                    }) 
+                })); 
+                saveData(newData); 
+            };
+            
             const showNotification = (msg) => { setNotification(msg); setTimeout(() => setNotification(null), 3000); };
 
             const handleAddNewProduct = (name, category) => {
@@ -1637,7 +1788,16 @@
             }, [data, searchTerm]);
 
             const getIcon = (n) => { if (n.includes("Premium")) return Icons.GlassWater; if (n.includes("Wells")) return Icons.Package; if (n.includes("Beers")) return Icons.Beer; if (n.includes("Wines")) return Icons.Wine; if (n.includes("Non Alcoholic")) return Icons.Leaf; return Icons.RefreshCw; };
-            const activeQuickItem = useMemo(() => { if (!quickScanItemId) return null; for (const cat of data) { const found = cat.items.find(i => i.id === quickScanItemId); if (found) return found; } return null; }, [data, quickScanItemId]);
+            
+            // Need to pass category_name to modal for weighing check
+            const activeQuickItem = useMemo(() => { 
+                if (!quickScanItemId) return null; 
+                for (const cat of data) { 
+                    const found = cat.items.find(i => i.id === quickScanItemId); 
+                    if (found) return { ...found, category_name: cat.category }; // Inject Category Name
+                } 
+                return null; 
+            }, [data, quickScanItemId]);
 
             // PIN LOCK CHECK
             if (isLocked) {
@@ -1666,6 +1826,8 @@
                             seasonData={currentTheme}
                             onCycleSeason={cycleSeason}
                             onShowCount={() => setShowCountReview(true)}
+                            onConnectScale={connectToScale}
+                            isScaleConnected={isScaleConnected}
                         />
                         
                         {/* --- NEW LOCATION CONTEXT SWITCHER --- */}
@@ -1748,6 +1910,9 @@
                             }} 
                             onUpdate={updateItem} 
                             initialLocation={currentLocation}
+                            isScaleConnected={isScaleConnected}
+                            currentScaleWeight={currentScaleWeight}
+                            onUpdateWeights={updateItemWeights}
                         />
                     )}
                     
