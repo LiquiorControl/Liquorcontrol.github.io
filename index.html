@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Scanner v42 - Edge Full</title>
+    <title>Scanner v42 - Edge Fixed</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
@@ -25,7 +25,6 @@
             -webkit-font-smoothing: antialiased; 
         }
 
-        /* --- EDGE STYLES --- */
         .edge-card {
             background: rgba(10, 10, 10, 0.9);
             backdrop-filter: blur(16px);
@@ -51,8 +50,15 @@
         .edge-btn { position: relative; overflow: hidden; transition: all 0.2s; }
         .edge-btn:active { transform: scale(0.96); }
         
-        #reader { border-radius: 1rem; border: 2px solid #06b6d4 !important; box-shadow: 0 0 30px rgba(6,182,212,0.3); }
+        /* ESTILOS PARA EL ESCÁNER */
+        #reader { 
+            border-radius: 1rem; 
+            border: 2px solid #06b6d4 !important; 
+            box-shadow: 0 0 30px rgba(6,182,212,0.3); 
+            background: #000;
+        }
         #reader video { object-fit: cover; border-radius: 1rem; }
+        #reader__dashboard_section_csr span { display: none !important; } /* Ocultar texto default */
         
         .animate-in { animation: slideUp 0.3s cubic-bezier(0.2, 0.8, 0.2, 1); }
         @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
@@ -88,6 +94,7 @@
             bodega: [ { id: 'bodega_closet', label: 'Closet', icon: '🚪' }, { id: 'bodega_shelves', label: 'Shelves', icon: '🗄️' } ]
         };
 
+        // --- SONIDOS ---
         const playSound = (type) => {
             try {
                 const ctx = new (window.AudioContext || window.webkitAudioContext)();
@@ -108,6 +115,7 @@
             } catch (e) {}
         };
 
+        // --- ICONOS ---
         const IconWrapper = ({ children, className }) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>{children}</svg>);
         const Icons = {
             Scan: (p) => <IconWrapper {...p}><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><rect width="10" height="6" x="7" y="9" rx="1"/></IconWrapper>,
@@ -124,7 +132,6 @@
             Package: (p) => <IconWrapper {...p}><path d="m7.5 4.27 9 5.15"/><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22v-9"/></IconWrapper>,
             Barcode: (p) => <IconWrapper {...p}><path d="M3 5v14"/><path d="M8 5v14"/><path d="M12 5v14"/><path d="M17 5v14"/><path d="M21 5v14"/></IconWrapper>,
             ShoppingCart: (p) => <IconWrapper {...p}><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/></IconWrapper>,
-            Settings: (p) => <IconWrapper {...p}><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1Z"/></IconWrapper>,
             Scale: (p) => <IconWrapper {...p}><rect x="4" y="4" width="16" height="16" rx="2"/><circle cx="12" cy="12" r="3"/><path d="M12 9v3"/></IconWrapper>,
             Wrench: (p) => <IconWrapper {...p}><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></IconWrapper>,
             Refresh: (p) => <IconWrapper {...p}><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 21H3v-5"/></IconWrapper>,
@@ -157,7 +164,6 @@
             );
         };
 
-        // WRAPPER GENÉRICO PARA MODALES ESTILO EDGE
         const ModalBase = ({ children, onClose, title, icon:Icon, glowColor="cyan" }) => (
             <div className="fixed inset-0 z-[80] flex flex-col backdrop-blur-xl bg-black/90 animate-in">
                 <div className={`p-4 border-b border-white/5 flex justify-between items-center bg-black/50 ${glowColor === 'red' ? 'border-red-900/50' : glowColor === 'green' ? 'border-green-900/50' : glowColor === 'yellow' ? 'border-yellow-900/50' : 'border-cyan-900/50'}`}>
@@ -174,7 +180,51 @@
             </div>
         );
 
-        // --- FUNCIONALIDADES COMPLETAS RESTAURADAS ---
+        // --- COMPONENTE SCANNER CORREGIDO (FIXED) ---
+        const ScannerModal = ({ onScan, onClose }) => {
+            useEffect(() => {
+                let scanner = null;
+                // Esperamos 100ms para asegurar que el div "reader" existe en el DOM
+                const timer = setTimeout(() => {
+                    try {
+                        scanner = new Html5QrcodeScanner(
+                            "reader", 
+                            { 
+                                fps: 10, 
+                                qrbox: { width: 250, height: 250 },
+                                aspectRatio: 1.0,
+                                showTorchButtonIfSupported: true
+                            }, 
+                            false
+                        );
+                        scanner.render(
+                            (txt) => onScan(txt), 
+                            (err) => { /* Ignorar errores de no detección frame a frame */ }
+                        );
+                    } catch (e) {
+                        console.error("Camera Init Error:", e);
+                        alert("Error de cámara. Asegúrate de usar HTTPS o localhost.");
+                    }
+                }, 100);
+
+                return () => {
+                    clearTimeout(timer);
+                    if (scanner) { scanner.clear().catch(e=>console.log(e)); }
+                };
+            }, []);
+
+            return (
+                <div className="fixed inset-0 bg-black z-[100] flex flex-col animate-in">
+                    <div className="p-6 flex justify-between items-center bg-black/80 backdrop-blur border-b border-cyan-900/50">
+                        <h2 className="text-cyan-400 font-mono tracking-widest animate-pulse font-bold">SCANNING...</h2>
+                        <button onClick={onClose} className="text-red-500 font-bold uppercase tracking-wider text-xs border border-red-900 p-2 rounded bg-red-900/10">Abort</button>
+                    </div>
+                    <div className="flex-1 flex items-center justify-center p-4">
+                        <div id="reader" className="w-full max-w-sm overflow-hidden rounded-xl border-2 border-cyan-500 shadow-[0_0_50px_rgba(6,182,212,0.3)] bg-black"></div>
+                    </div>
+                </div>
+            );
+        };
 
         const PurchasesLogModal = ({ onClose, data }) => {
             const purchasedItems = []; let totalPurchasedUnits = 0;
@@ -523,16 +573,7 @@
                         <Icons.Scan className="text-cyan-400 w-8 h-8 group-hover:scale-110 transition-transform" />
                     </button>
 
-                    {scanning && (
-                         <div className="fixed inset-0 bg-black z-[100] flex flex-col animate-in">
-                             <div className="p-6 flex justify-between items-center bg-black/80 backdrop-blur border-b border-cyan-900/50">
-                                 <h2 className="text-cyan-400 font-mono tracking-widest animate-pulse font-bold">SCANNING...</h2>
-                                 <button onClick={()=>setScanning(false)} className="text-red-500 font-bold uppercase tracking-wider text-xs border border-red-900 p-2 rounded bg-red-900/10">Abort</button>
-                             </div>
-                             <div className="flex-1 flex items-center justify-center p-4"><div id="reader" className="w-full max-w-sm overflow-hidden rounded-xl border-2 border-cyan-500 shadow-[0_0_50px_rgba(6,182,212,0.3)]"></div></div>
-                         </div>
-                    )}
-                    
+                    {scanning && <ScannerModal onScan={handleScan} onClose={()=>setScanning(false)} />}
                     {editItem && <QuickEditModal item={editItem} initialLocation={loc} initialSubZone={subZone} onClose={()=>setEditItem(null)} onContinue={()=>{setEditItem(null); setTimeout(()=>setScanning(true),300)}} onUpdate={update} onOpenCalibration={i=>toggleModal('calib',i)} />}
                     {modals.loc && <LocationModal onClose={()=>toggleModal('loc',false)} onSelect={(l,s)=>{setLoc(l); setSubZone(s); toggleModal('loc',false)}} />}
                     {modals.calib && <BottleCalibrationModal item={modals.calib} onClose={()=>toggleModal('calib',null)} onSave={(id,f,e)=>{update(id,{weight_full:f,weight_empty:e});toggleModal('calib',null);playSound('success')}} />}
