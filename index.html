@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Scanner v4.2 - Pro Edition</title>
+    <title>Scanner v4.2 - Pro Layout</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
@@ -27,7 +27,6 @@
         
         body { 
             background-color: var(--bg-dark);
-            /* Sutil gradiente muy oscuro */
             background-image: radial-gradient(circle at 50% 0%, #1a103c, #000000 60%);
             background-attachment: fixed;
             color: #e2e8f0; 
@@ -37,13 +36,13 @@
             -webkit-font-smoothing: antialiased; 
         }
 
-        /* EDGE LIGHTING STYLES */
+        /* EDGE / PRO STYLES */
         .glass {
             background: rgba(10, 10, 10, 0.6);
             backdrop-filter: blur(12px);
             -webkit-backdrop-filter: blur(12px);
             border: 1px solid rgba(255, 255, 255, 0.05);
-            border-left: 1px solid rgba(6, 182, 212, 0.3); /* Cian sutil a la izquierda */
+            border-left: 1px solid rgba(6, 182, 212, 0.3);
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(6, 182, 212, 0.1);
         }
 
@@ -52,7 +51,6 @@
             backdrop-filter: blur(20px);
             -webkit-backdrop-filter: blur(20px);
             border: 1px solid rgba(255, 255, 255, 0.08);
-            /* Borde brillante estilo Edge */
             box-shadow: 0 0 15px rgba(139, 92, 246, 0.15), inset 0 0 20px rgba(139, 92, 246, 0.05);
         }
 
@@ -72,7 +70,6 @@
         }
         
         button:active { transform: scale(0.97); }
-
         input, select { font-size: 16px !important; }
         
         .animate-in { animation: slideUpFade 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
@@ -635,14 +632,6 @@
                 setShowMenu(false);
             };
 
-            const handleReleaseData = () => {
-                setUploading(true);
-                setTimeout(() => {
-                    setUploading(false);
-                    playSound('success');
-                }, 800);
-            };
-
             const handleBackup = () => {
                 const blob = new Blob([JSON.stringify(data)], { type: "application/json" });
                 const url = URL.createObjectURL(blob);
@@ -707,21 +696,12 @@
                         </div>
                         
                         <div className="flex items-center gap-3">
+                            {/* CAMBIO 1: Botón de Check List (Lista) reemplaza al de Upload */}
                             <button 
-                                onClick={handleReleaseData}
-                                disabled={uploading}
-                                className={`
-                                    p-3 rounded-xl border transition-all active:scale-95 relative overflow-hidden group
-                                    ${uploading 
-                                        ? "bg-cyan-900/20 border-cyan-500/30 text-cyan-400 cursor-wait" 
-                                        : "glass hover:bg-cyan-500/10 hover:border-cyan-500/50 text-white hover:shadow-[0_0_15px_rgba(6,182,212,0.2)]"}
-                                `}
+                                onClick={() => setShowCheck(true)}
+                                className="glass text-white p-3 rounded-xl hover:bg-cyan-500/10 hover:border-cyan-500/50 active:scale-95 transition-all group hover:shadow-[0_0_15px_rgba(6,182,212,0.2)]"
                             >
-                                {uploading ? (
-                                    <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-                                ) : (
-                                    <Icons.Upload className="h-5 w-5 group-hover:text-cyan-400 transition-colors" />
-                                )}
+                                <Icons.List className="h-6 w-6 group-hover:text-cyan-400 transition-colors" />
                             </button>
 
                             <button onClick={() => setShowMenu(!showMenu)} className="glass text-white p-3 rounded-xl hover:bg-purple-500/10 hover:border-purple-500/50 active:scale-95 transition-all group hover:shadow-[0_0_15px_rgba(168,85,247,0.2)]">
@@ -733,11 +713,18 @@
                             <>
                                 <div className="menu-backdrop" onClick={() => setShowMenu(false)}></div>
                                 <div className="absolute top-16 right-0 glass-strong p-2 rounded-2xl shadow-[0_0_30px_rgba(0,0,0,1)] z-50 flex flex-col gap-1 w-56 animate-in border border-white/10">
-                                    <button onClick={handleLocalReset} className="flex items-center gap-3 p-4 hover:bg-red-500/10 hover:border hover:border-red-500/30 rounded-xl text-gray-300 hover:text-red-400 font-bold transition-all text-sm uppercase tracking-wide"><Icons.Refresh className="text-red-500" /> Local Reset</button>
-                                    <button onClick={() => { handleBackup(); setShowMenu(false); }} className="flex items-center gap-3 p-4 hover:bg-white/5 rounded-xl text-gray-300 hover:text-white font-bold transition-all text-sm uppercase tracking-wide"><Icons.Save className="text-emerald-500" /> Backup Data</button>
+                                    {/* CAMBIO 2: Nuevo orden solicitado */}
+                                    {/* 1. Purchases */}
                                     <button onClick={() => { setShowPurchases(true); setShowMenu(false); }} className="flex items-center gap-3 p-4 hover:bg-white/5 rounded-xl text-gray-300 hover:text-white font-bold transition-all text-sm uppercase tracking-wide"><Icons.Package className="text-emerald-500" /> Purchases</button>
+                                    
+                                    {/* 2. Bottle Ctrl */}
                                     <button onClick={() => { setShowPremium(true); setShowMenu(false); }} className="flex items-center gap-3 p-4 hover:bg-white/5 rounded-xl text-gray-300 hover:text-white font-bold transition-all text-sm uppercase tracking-wide"><Icons.Star className="text-yellow-500" /> Bottle Ctrl</button>
-                                    <button onClick={() => { setShowCheck(true); setShowMenu(false); }} className="flex items-center gap-3 p-4 hover:bg-white/5 rounded-xl text-gray-300 hover:text-white font-bold transition-all text-sm uppercase tracking-wide"><Icons.List className="text-cyan-500" /> Check List</button>
+                                    
+                                    {/* 3. Backup Data */}
+                                    <button onClick={() => { handleBackup(); setShowMenu(false); }} className="flex items-center gap-3 p-4 hover:bg-white/5 rounded-xl text-gray-300 hover:text-white font-bold transition-all text-sm uppercase tracking-wide"><Icons.Save className="text-indigo-500" /> Backup Data</button>
+                                    
+                                    {/* 4. Local Reset */}
+                                    <button onClick={handleLocalReset} className="flex items-center gap-3 p-4 hover:bg-red-500/10 hover:border hover:border-red-500/30 rounded-xl text-gray-300 hover:text-red-400 font-bold transition-all text-sm uppercase tracking-wide"><Icons.Refresh className="text-red-500" /> Local Reset</button>
                                 </div>
                             </>
                         )}
@@ -844,3 +831,5 @@
     </script>
 </body>
 </html>
+        
+        
