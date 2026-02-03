@@ -3,95 +3,22 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Scanner v4.3 - Auto Sort</title>
-    
+    <title>Scanner Pro v5.0 (Satellite)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
-
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=JetBrains+Mono:wght@700&display=swap" rel="stylesheet">
-
+    
     <style>
-        :root { 
-            --theme-font: 'Outfit', sans-serif;
-            --mono-font: 'JetBrains Mono', monospace; 
-            --neon-cyan: #06b6d4;
-            --neon-purple: #8b5cf6;
-            --neon-pink: #ec4899;
-            --neon-green: #10b981;
-            --clock-green: #4ade80;
-            --bg-dark: #050505;
-        }
-        
-        body { 
-            background-color: var(--bg-dark);
-            background-image: radial-gradient(circle at 50% 0%, #1a103c, #000000 60%);
-            background-attachment: fixed;
-            color: #e2e8f0; 
-            font-family: var(--theme-font), system-ui; 
-            min-height: 100vh; 
-            overscroll-behavior-y: none; 
-            -webkit-font-smoothing: antialiased; 
-        }
-
-        /* PRO / EDGE STYLES */
-        .glass {
-            background: rgba(10, 10, 10, 0.6);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.05);
-            border-left: 1px solid rgba(6, 182, 212, 0.3);
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(6, 182, 212, 0.1);
-            transition: all 0.3s ease; /* Suavizar reordenamiento */
-        }
-
-        .glass-strong {
-            background: rgba(0, 0, 0, 0.9);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            box-shadow: 0 0 15px rgba(139, 92, 246, 0.15), inset 0 0 20px rgba(139, 92, 246, 0.05);
-        }
-
-        .glass-input {
-            background: rgba(0, 0, 0, 0.6) !important;
-            border: 1px solid rgba(255, 255, 255, 0.1) !important;
-            border-bottom: 2px solid rgba(255, 255, 255, 0.2) !important;
-            color: white !important;
-            backdrop-filter: blur(4px);
-            transition: all 0.3s ease;
-        }
-
-        .glass-input:focus {
-            border-bottom: 2px solid var(--neon-cyan) !important;
-            box-shadow: 0 10px 25px -5px rgba(6, 182, 212, 0.3);
-            background: rgba(6, 182, 212, 0.05) !important;
-        }
-        
-        button:active { transform: scale(0.97); }
-        input, select { font-size: 16px !important; }
-        
-        .animate-in { animation: slideUpFade 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
-        @keyframes slideUpFade { from { opacity: 0; transform: translateY(30px) scale(0.95); } to { opacity: 1; transform: translateY(0) scale(1); } }
-        
-        #reader { 
-            border-radius: 1.5rem !important; 
-            overflow: hidden; 
-            width: 100% !important; 
-            border: 2px solid var(--neon-cyan) !important; 
-            box-shadow: 0 0 30px rgba(6, 182, 212, 0.4);
-        }
-        #reader video { object-fit: cover; border-radius: 1.5rem; }
-        
-        .menu-backdrop { position: fixed; inset: 0; z-index: 40; background: rgba(0,0,0,0.8); backdrop-filter: blur(8px); }
-
-        .text-neon-cyan { color: var(--neon-cyan); text-shadow: 0 0 10px rgba(6,182,212,0.5); }
-        .text-neon-purple { color: var(--neon-purple); text-shadow: 0 0 10px rgba(139,92,246,0.5); }
-        .border-neon-cyan { border-color: var(--neon-cyan); }
+        body { background-color: #000; color: #fff; font-family: system-ui, -apple-system, sans-serif; overscroll-behavior: none; }
+        .glass { background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); }
+        .glass-strong { background: rgba(20, 20, 20, 0.8); backdrop-filter: blur(20px); }
+        .glass-input { background: rgba(0, 0, 0, 0.3); border: 1px solid rgba(255, 255, 255, 0.2); }
+        .animate-in { animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        .menu-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.5); backdrop-filter: blur(2px); z-index: 40; }
+        input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
     </style>
 </head>
 <body>
@@ -99,90 +26,93 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js";
-        import { getFirestore, doc, onSnapshot, setDoc } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
+        import { getFirestore, doc, setDoc, onSnapshot, getDoc, collection } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
         import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js";
-        window.fb = { initializeApp, getFirestore, doc, onSnapshot, setDoc, getAuth, signInAnonymously, onAuthStateChanged };
+        window.fb = { initializeApp, getFirestore, doc, setDoc, onSnapshot, getDoc, getAuth, signInAnonymously, onAuthStateChanged, collection };
     </script>
 
     <script type="text/babel">
-        const { useState, useEffect, useMemo } = React;
+        const { useState, useEffect, useMemo, useRef } = React;
 
-        // ✅ TUS CREDENCIALES
         const FIREBASE_CONFIG = { 
-            apiKey: "AIzaSyDqdJcKILp5kQ4sTxVm8Ch5E7oXfMD3BAM",
-            authDomain: "master-control-palmas.firebaseapp.com",
-            projectId: "master-control-palmas",
-            storageBucket: "master-control-palmas.firebasestorage.app",
-            messagingSenderId: "681752784684",
-            appId: "1:681752784684:web:e4a4a4ce96d587380d4689"
+            apiKey: "AIzaSyDqdJcKILp5kQ4sTxVm8Ch5E7oXfMD3BAM", 
+            authDomain: "master-control-palmas.firebaseapp.com", 
+            projectId: "master-control-palmas", 
+            storageBucket: "master-control-palmas.firebasestorage.app", 
+            messagingSenderId: "681752784684", 
+            appId: "1:681752784684:web:e4a4a4ce96d587380d4689" 
         };
 
         const ZONES_CONFIG = {
-            bar1: [ { id: 'bar1_cooler', label: 'Cooler Beer', icon: '🧊' }, { id: 'bar1_small_cooler_1', label: 'Small 1', icon: '❄️' }, { id: 'bar1_small_cooler_2', label: 'Small 2', icon: '❄️' }, { id: 'bar1_reaching', label: 'Reaching', icon: '✋' }, { id: 'bar1_shelf_full', label: 'Shelf Full', icon: '🍾' }, { id: 'bar1_shelf_open', label: 'Shelf Open', icon: '🥃' }, { id: 'bar1_well_1', label: 'Well 1', icon: '🥃' }, { id: 'bar1_well_2', label: 'Well 2', icon: '🥃' } ],
-            bar2: [ { id: 'bar2_cooler', label: 'Cooler', icon: '🧊' }, { id: 'bar2_small_cooler', label: 'Small Cooler', icon: '❄️' } ],
-            bodega: [ { id: 'bodega_closet', label: 'Closet', icon: '🚪' }, { id: 'bodega_shelves', label: 'Shelves', icon: '🗄️' } ]
+            bar1: [
+                { id: 'bar1_cooler', label: 'Cooler Beer', icon: '🧊' },
+                { id: 'bar1_small_cooler_1', label: 'Small 1', icon: '❄️' },
+                { id: 'bar1_small_cooler_2', label: 'Small 2', icon: '❄️' },
+                { id: 'bar1_reaching', label: 'Reaching', icon: '✋' },
+                { id: 'bar1_shelf_full', label: 'Shelf Full', icon: '🍾' },
+                { id: 'bar1_shelf_open', label: 'Shelf Open', icon: '🥃' },
+                { id: 'bar1_well_1', label: 'Well 1', icon: '🥃' },
+                { id: 'bar1_well_2', label: 'Well 2', icon: '🥃' }
+            ],
+            bar2: [
+                { id: 'bar2_cooler', label: 'Cooler', icon: '🧊' },
+                { id: 'bar2_small_cooler', label: 'Small Cooler', icon: '❄️' }
+            ],
+            bodega: [
+                { id: 'bodega_closet', label: 'Closet', icon: '🚪' },
+                { id: 'bodega_shelves', label: 'Shelves', icon: '🗄️' }
+            ]
         };
 
         const playSound = (type) => {
-            try {
-                const AudioContext = window.AudioContext || window.webkitAudioContext; if (!AudioContext) return;
-                const ctx = new AudioContext(); const osc = ctx.createOscillator(); const gain = ctx.createGain();
-                osc.connect(gain); gain.connect(ctx.destination); const now = ctx.currentTime;
-                if (type === 'success') { osc.type = "sine"; osc.frequency.setValueAtTime(800, now); osc.frequency.exponentialRampToValueAtTime(1600, now + 0.1); gain.gain.setValueAtTime(0.2, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.4); osc.start(now); osc.stop(now + 0.4); }
-                if (type === 'error') { osc.type = "sawtooth"; osc.frequency.setValueAtTime(120, now); osc.frequency.linearRampToValueAtTime(80, now + 0.3); gain.gain.setValueAtTime(0.3, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3); osc.start(now); osc.stop(now + 0.3); }
-                if (type === 'add') { osc.type = "triangle"; osc.frequency.setValueAtTime(600, now); osc.frequency.exponentialRampToValueAtTime(900, now + 0.1); gain.gain.setValueAtTime(0.2, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15); osc.start(now); osc.stop(now + 0.15); }
-                if (type === 'sub') { osc.type = "square"; osc.frequency.setValueAtTime(250, now); osc.frequency.exponentialRampToValueAtTime(150, now + 0.15); gain.gain.setValueAtTime(0.15, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2); osc.start(now); osc.stop(now + 0.2); }
-                if (type === 'blip') { osc.type = "sine"; osc.frequency.setValueAtTime(1000, now); osc.frequency.exponentialRampToValueAtTime(1000, now + 0.05); gain.gain.setValueAtTime(0.05, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05); osc.start(now); osc.stop(now + 0.05); }
-            } catch (e) {}
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            const osc = ctx.createOscillator(); const gain = ctx.createGain();
+            osc.connect(gain); gain.connect(ctx.destination);
+            const now = ctx.currentTime;
+            if (type === 'success') { osc.frequency.setValueAtTime(800, now); osc.frequency.exponentialRampToValueAtTime(1200, now + 0.1); gain.gain.setValueAtTime(0.1, now); gain.gain.linearRampToValueAtTime(0, now + 0.1); osc.start(now); osc.stop(now + 0.1); }
+            else if (type === 'error') { osc.type = 'sawtooth'; osc.frequency.setValueAtTime(150, now); gain.gain.setValueAtTime(0.2, now); gain.gain.linearRampToValueAtTime(0, now + 0.3); osc.start(now); osc.stop(now + 0.3); }
+            else if (type === 'blip') { osc.frequency.setValueAtTime(400, now); gain.gain.setValueAtTime(0.05, now); gain.gain.linearRampToValueAtTime(0, now + 0.05); osc.start(now); osc.stop(now + 0.05); }
+            else if (type === 'add') { osc.frequency.setValueAtTime(600, now); osc.frequency.linearRampToValueAtTime(800, now + 0.1); gain.gain.setValueAtTime(0.05, now); gain.gain.linearRampToValueAtTime(0, now + 0.1); osc.start(now); osc.stop(now + 0.1); }
+            else if (type === 'sub') { osc.frequency.setValueAtTime(800, now); osc.frequency.linearRampToValueAtTime(600, now + 0.1); gain.gain.setValueAtTime(0.05, now); gain.gain.linearRampToValueAtTime(0, now + 0.1); osc.start(now); osc.stop(now + 0.1); }
+            else if (type === 'connect') { osc.frequency.setValueAtTime(440, now); osc.frequency.setValueAtTime(880, now + 0.2); gain.gain.setValueAtTime(0.1, now); gain.gain.setValueAtTime(0, now + 0.4); osc.start(now); osc.stop(now + 0.4); }
         };
 
-        const IconWrapper = ({ children, className }) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>{children}</svg>);
         const Icons = {
-            Scan: (p) => <IconWrapper {...p}><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><rect width="10" height="6" x="7" y="9" rx="1"/></IconWrapper>,
-            Search: (p) => <IconWrapper {...p}><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></IconWrapper>,
-            MapPin: (p) => <IconWrapper {...p}><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></IconWrapper>,
-            Beer: (p) => <IconWrapper {...p}><path d="M17 11h1a3 3 0 0 1 0 6h-1"/><path d="M9 12h6"/><path d="M9 12v3a8 8 0 0 1-16 0v-3"/><path d="M22 6h-7a2 2 0 0 0-2 2v2"/><path d="M5 12V3a2 2 0 0 1 2-2h7"/></IconWrapper>,
-            Box: (p) => <IconWrapper {...p}><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22v-9"/></IconWrapper>,
-            Wine: (p) => <IconWrapper {...p}><path d="M8 22h8"/><path d="M7 10h10"/><path d="M12 15v7"/><path d="M12 15a5 5 0 0 0 5-5c0-2-.5-4-2-8H9c-1.5 4-2 6-2 8a5 5 0 0 0 5 5Z"/></IconWrapper>,
-            ChevronDown: (p) => <IconWrapper {...p}><path d="m6 9 6 6 6-6"/></IconWrapper>,
-            List: (p) => <IconWrapper {...p}><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></IconWrapper>,
-            Link: (p) => <IconWrapper {...p}><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></IconWrapper>,
-            Save: (p) => <IconWrapper {...p}><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></IconWrapper>,
-            Star: (p) => <IconWrapper {...p}><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></IconWrapper>,
-            Package: (p) => <IconWrapper {...p}><path d="m7.5 4.27 9 5.15"/><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22v-9"/></IconWrapper>,
-            Barcode: (p) => <IconWrapper {...p}><path d="M3 5v14"/><path d="M8 5v14"/><path d="M12 5v14"/><path d="M17 5v14"/><path d="M21 5v14"/></IconWrapper>,
-            ShoppingCart: (p) => <IconWrapper {...p}><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/></IconWrapper>,
-            Settings: (p) => <IconWrapper {...p}><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1Z"/></IconWrapper>,
-            Scale: (p) => <IconWrapper {...p}><rect x="4" y="4" width="16" height="16" rx="2"/><circle cx="12" cy="12" r="3"/><path d="M12 9v3"/></IconWrapper>,
-            Wrench: (p) => <IconWrapper {...p}><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></IconWrapper>,
-            Refresh: (p) => <IconWrapper {...p}><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 21H3v-5"/></IconWrapper>,
-            Reset: (p) => <IconWrapper {...p}><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></IconWrapper>,
-            Upload: (p) => <IconWrapper {...p}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></IconWrapper>
+            Beer: (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17 11h1a3 3 0 0 1 0 6h-1"/><path d="M9 12h6"/><path d="M9 12v3a8 8 0 0 1-16 0v-3"/><path d="M22 6h-7a2 2 0 0 0-2 2v2"/><path d="M5 12V3a2 2 0 0 1 2-2h7"/></svg>,
+            Wine: (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M8 22h8"/><path d="M7 10h10"/><path d="M12 15v7"/><path d="M12 15a5 5 0 0 0 5-5c0-2-.5-4-2-8H9c-1.5 4-2 6-2 8a5 5 0 0 0 5 5Z"/></svg>,
+            Box: (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22v-9"/></svg>,
+            MapPin: (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>,
+            ShoppingCart: (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/></svg>,
+            Scan: (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><rect width="10" height="6" x="7" y="9" rx="1"/></svg>,
+            Search: (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>,
+            List: (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="8" x2="21" y1="6" y2="6"/><line x1="8" x2="21" y1="12" y2="12"/><line x1="8" x2="21" y1="18" y2="18"/><line x1="3" x2="3.01" y1="6" y2="6"/><line x1="3" x2="3.01" y1="12" y2="12"/><line x1="3" x2="3.01" y1="18" y2="18"/></svg>,
+            Settings: (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12.22 2h-.44a2 2 0 0 1-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.1a2 2 0 0 1-1-1.74v-.47a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>,
+            ChevronDown: (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m6 9 6 6 6-6"/></svg>,
+            Wrench: (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>,
+            Bluetooth: (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m7 7 10 10-5 5V2l5 5L7 17"/></svg>,
+            Refresh: (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>,
+            Package: (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m7.5 4.27 9 5.15"/><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22v-9"/></svg>,
+            Star: (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>,
+            Save: (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>,
+            Link: (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>,
+            Barcode: (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 5v14"/><path d="M8 5v14"/><path d="M12 5v14"/><path d="M17 5v14"/><path d="M21 5v14"/></svg>
         };
+
+        // --- PART 1 & 2: MODALES AUXILIARES ---
 
         const LoginScreen = ({ onLogin }) => {
             const [pin, setPin] = useState("");
-            
             const handlePress = (n) => {
                 playSound('blip');
                 const newP = pin + n;
                 setPin(newP);
-                if (newP === "1130") {
-                    playSound('success');
-                    onLogin();
-                }
-                if (newP.length >= 4 && newP !== "1130") {
-                    playSound('error');
-                    setPin("");
-                }
+                if (newP === "1130") { playSound('success'); onLogin(); }
+                if (newP.length >= 4 && newP !== "1130") { playSound('error'); setPin(""); }
             };
-
             return (
                 <div className="fixed inset-0 flex flex-col items-center justify-center p-4 z-50 bg-[#000000]">
                     <div className="glass-strong w-full max-w-sm p-8 rounded-3xl border border-white/10 relative overflow-hidden">
-                        {/* Glow effect decorative */}
                         <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-cyan-500 to-transparent"></div>
-                        
                         <div className="mb-8 text-center">
                             <h1 className="text-3xl font-black text-white tracking-tight drop-shadow-[0_0_10px_rgba(255,255,255,0.5)]">SCANNER <span className="text-cyan-400">PRO</span></h1>
                             <p className="text-cyan-500/70 text-sm mt-2 font-mono uppercase tracking-widest">Identify Yourself</p>
@@ -193,6 +123,7 @@
                 </div>
             );
         };
+
         const PurchasesLogModal = ({ onClose, data }) => {
             const purchasedItems = []; let totalPurchasedUnits = 0;
             data.forEach(cat => { cat.items.forEach(item => { const val = parseFloat(item.purchases); if (!isNaN(val) && val > 0) { purchasedItems.push({ ...item, categoryName: cat.category, purchaseVal: val }); totalPurchasedUnits += val; } }); });
@@ -254,12 +185,7 @@
                         {mainLocs.map(main => {
                             const subZones = ZONES_CONFIG[main.id] || [];
                             const mainTotal = data.reduce((acc, cat) => acc + cat.items.reduce((iAcc, item) => iAcc + (parseFloat(item[main.id])||0), 0), 0);
-                            
-                            // Direct Items (No Subzone)
                             const directItems = data.flatMap(cat => cat.items.filter(i => (parseFloat(i[main.id])||0) > 0)).map(i => ({...i, val: parseFloat(i[main.id])}));
-                            // SORT DIRECT ITEMS BY LAST MODIFIED (NEWEST FIRST)
-                            directItems.sort((a, b) => (b.last_modified || 0) - (a.last_modified || 0));
-
                             if (mainTotal === 0) return null;
                             return (
                                 <div key={main.id} className="space-y-3 relative">
@@ -268,10 +194,10 @@
                                         <span className="text-white font-mono text-sm font-bold bg-black/50 px-3 py-1 rounded border border-white/10 shadow-inner">Total: {mainTotal}</span>
                                     </div>
                                     {subZones.map(zone => { 
-                                        const zoneItems = data.flatMap(cat => cat.items.filter(i => (parseFloat(i[zone.id])||0) > 0)).map(i => ({...i, val: parseFloat(i[zone.id])})); 
-                                        
-                                        // ✅ AUTO SORT: Ordenar por Timestamp Descendente (Lo último escaneado sale arriba)
-                                        zoneItems.sort((a, b) => (b.last_modified || 0) - (a.last_modified || 0));
+                                        const zoneItems = data.flatMap(cat => cat.items)
+                                            .filter(i => (parseFloat(i[zone.id])||0) > 0)
+                                            .map(i => ({...i, val: parseFloat(i[zone.id])}))
+                                            .sort((a, b) => (b.last_updated || 0) - (a.last_updated || 0)); 
 
                                         if (zoneItems.length === 0) return null; 
                                         return (
@@ -329,125 +255,266 @@
             );
         };
 
-        const QuickEditModal = ({ item, onClose, onContinue, onUpdate, initialLocation, initialSubZone, onOpenCalibration }) => {
+        // --- PARTE 3: QUICK EDIT MODAL (CORE) ---
+        const QuickEditModal = ({ 
+            item, 
+            onClose, 
+            onContinue, 
+            onUpdate, 
+            initialLocation, 
+            initialSubZone, 
+            onOpenCalibration,
+            scaleWeight,        
+            isScaleConnected,   
+            onConnectScale      
+        }) => {
             const [value, setValue] = useState(0);
+            const [manualGrams, setManualGrams] = useState("");
+            
             const zones = ZONES_CONFIG[initialLocation] || [];
             const subZoneId = initialSubZone || (zones[0]?.id);
-            const subZoneLabel = zones.find(z=>z.id===subZoneId)?.label;
+            const subZoneLabel = zones.find(z => z.id === subZoneId)?.label;
+            
             const targetField = zones.length > 0 ? subZoneId : initialLocation;
             
-            const isOpenZone = ['bar1_shelf_open', 'bar1_well_1', 'bar1_well_2'].includes(initialSubZone);
-            const isSmallGroup = ['bar1_shelf_full', 'bar2_cooler', 'bar2_small_cooler', 'bodega_closet'].includes(initialSubZone) || initialLocation === 'barroluco';
+            // --- CORRECCIÓN: LECTURA DEL HISTORIAL DE ZONA ESPECÍFICA ---
+            const historyKey = `last_${targetField}`;
+            const historyVal = item[historyKey] !== undefined ? item[historyKey] : '-';
+            
+            // Configuración de Zonas
+            const isOpenZone = ['bar1_shelf_open', 'bar1_well_1', 'bar1_well_2'].includes(initialSubZone) || initialLocation === 'barroluco';
+            const isCaseZone = ['bar1_reaching', 'bar1_shelf_full', 'bodega_shelves'].includes(initialSubZone) || initialLocation === 'purchases';
             const isMultiCount = (subZoneId === 'bar1_cooler' && (item.name.toLowerCase().includes('corona') || item.name.toLowerCase().includes('modelo')));
+            const isSmallGroup = !isOpenZone && !isMultiCount;
             
-            const [manualGrams, setManualGrams] = useState("");
-            const [slots, setSlots] = useState(() => { if(isMultiCount && item.breakdown_bar1_cooler) return item.breakdown_bar1_cooler; return [0, 0, 0, 0]; });
+            const [slots, setSlots] = useState(() => { 
+                if(isMultiCount && item.breakdown_bar1_cooler) return item.breakdown_bar1_cooler; 
+                return [0, 0, 0, 0]; 
+            });
+            
             const [startVal] = useState(() => parseFloat(item[targetField]) || 0);
+            const [scaleAddedValue, setScaleAddedValue] = useState(0);
 
-            useEffect(() => { if(!isMultiCount) setValue(parseFloat(item[targetField]) || 0); else { const sum = slots.reduce((a, b) => a + (parseFloat(b)||0), 0); setValue(sum); } }, [item, targetField, isMultiCount, slots]);
+            // Sincronizar valor visual
+            useEffect(() => { 
+                if(!isMultiCount) setValue(parseFloat(item[targetField]) || 0); 
+                else { 
+                    const sum = slots.reduce((a, b) => a + (parseFloat(b)||0), 0); 
+                    setValue(sum); 
+                } 
+            }, [item, targetField, isMultiCount, slots]);
 
-            const updateValue = (next) => { setValue(next); if (zones.length > 0) { let newTotal = 0; zones.forEach(z => { if (z.id === subZoneId) newTotal += next; else newTotal += (parseFloat(item[z.id]) || 0); }); onUpdate(item.id, { [subZoneId]: next, [initialLocation]: newTotal }); } else { onUpdate(item.id, initialLocation, next); } };
-            const handleSlotChange = (idx, val) => { const newSlots = [...slots]; newSlots[idx] = val === "" ? 0 : parseFloat(val); setSlots(newSlots); const newSum = newSlots.reduce((a, b) => a + b, 0); setValue(newSum); let newTotal = 0; zones.forEach(z => { if (z.id === subZoneId) newTotal += newSum; else newTotal += (parseFloat(item[z.id]) || 0); }); onUpdate(item.id, { [subZoneId]: newSum, [initialLocation]: newTotal, breakdown_bar1_cooler: newSlots }); };
-            const handleDelta = (delta) => { const next = Math.max(0, Math.round((value + delta) * 100) / 100); updateValue(next); if(delta>0) playSound('add'); else playSound('sub'); };
+            // Escucha de Balanza (Suma Automática)
+            useEffect(() => {
+                if (isOpenZone && scaleWeight !== null && scaleWeight !== undefined && scaleWeight !== "") {
+                    setManualGrams(scaleWeight);
+                    performCalculation(scaleWeight, true); 
+                }
+            }, [scaleWeight]);
+
+            const updateValue = (next) => { 
+                setValue(next); 
+                if (zones.length > 0) { 
+                    let newTotal = 0; 
+                    zones.forEach(z => { 
+                        if (z.id === subZoneId) newTotal += next; 
+                        else newTotal += (parseFloat(item[z.id]) || 0); 
+                    }); 
+                    onUpdate(item.id, { [subZoneId]: next, [initialLocation]: newTotal }); 
+                } else { 
+                    onUpdate(item.id, initialLocation, next); 
+                } 
+            };
+
+            const handleSlotChange = (idx, val) => { 
+                const newSlots = [...slots]; newSlots[idx] = val === "" ? 0 : parseFloat(val); setSlots(newSlots); 
+                const newSum = newSlots.reduce((a, b) => a + b, 0); setValue(newSum); 
+                let newTotal = 0; 
+                zones.forEach(z => { 
+                    if (z.id === subZoneId) newTotal += newSum; 
+                    else newTotal += (parseFloat(item[z.id]) || 0); 
+                }); 
+                onUpdate(item.id, { [subZoneId]: newSum, [initialLocation]: newTotal, breakdown_bar1_cooler: newSlots }); 
+            };
+
+            const handleDelta = (delta) => { 
+                const next = Math.max(0, Math.round((value + delta) * 100) / 100); 
+                updateValue(next); 
+                if(delta>0) playSound('add'); else playSound('sub'); 
+            };
             
-            // --- REAL TIME LOGIC ---
-            const handleManualInput = (val) => {
-                setManualGrams(val);
-                const grams = parseFloat(val);
-                if (isNaN(grams) && val !== "") return;
-                if (val === "") return;
+            const performCalculation = (gramsInput, isAuto = false) => {
+                const grams = parseFloat(gramsInput);
+                if (isNaN(grams) && gramsInput !== "") return;
+                
                 const full = parseFloat(item.weight_full);
                 const empty = parseFloat(item.weight_empty);
+                
                 if (!full || !empty) return; 
+                
                 const netLiquid = full - empty;
                 const currentLiquid = grams - empty;
                 let calculatedUnits = currentLiquid / netLiquid;
                 if (calculatedUnits < 0) calculatedUnits = 0;
-                const finalVal = Math.round(calculatedUnits * 100) / 100;
+                
+                const currentBottleValue = Math.round(calculatedUnits * 100) / 100;
+                setScaleAddedValue(currentBottleValue);
+
+                // Protección: Si es automático y da 0, y ya había valor, no hacemos nada
+                if (isAuto && currentBottleValue === 0 && startVal > 0) {
+                    return; 
+                }
+
+                // Lógica de Suma: Si viene de balanza, sumamos al inicial. Si es manual, reemplazamos.
+                let finalVal;
+                if (isAuto) {
+                    finalVal = startVal + currentBottleValue;
+                } else {
+                    finalVal = currentBottleValue;
+                }
+
+                finalVal = Math.round(finalVal * 100) / 100;
                 updateValue(finalVal);
             };
 
-            const sessionDiff = Math.round((value - startVal) * 100) / 100; const diffSign = sessionDiff > 0 ? "+" : ""; const diffColor = sessionDiff > 0 ? "text-emerald-400 drop-shadow-[0_0_15px_rgba(52,211,153,0.8)]" : sessionDiff < 0 ? "text-red-500 drop-shadow-[0_0_15px_rgba(239,68,68,0.8)]" : "text-gray-600";
+            const handleAddScaleToTotal = () => {
+                const next = Math.max(0, Math.round((value + scaleAddedValue) * 100) / 100);
+                updateValue(next);
+                playSound('add');
+            };
+
+            const handleManualInput = (val) => { setManualGrams(val); performCalculation(val, false); };
+
+            const sessionDiff = Math.round((value - startVal) * 100) / 100; 
+            const diffSign = sessionDiff > 0 ? "+" : ""; 
+            const diffColor = sessionDiff > 0 ? "text-emerald-400 drop-shadow-[0_0_15px_rgba(52,211,153,0.8)]" : sessionDiff < 0 ? "text-red-500 drop-shadow-[0_0_15px_rgba(239,68,68,0.8)]" : "text-gray-600";
 
             return (
-                <div className="fixed inset-0 z-50 flex flex-col items-center justify-center p-2 animate-in backdrop-blur-xl bg-black/90"><div className="glass-strong w-full max-w-md rounded-3xl overflow-hidden flex flex-col h-[90vh] shadow-[0_0_50px_rgba(0,0,0,0.8)] border border-white/5 relative"><div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-cyan-500 via-purple-500 to-pink-500 opacity-50"></div><div className="p-5 bg-black/40 border-b border-white/5 flex justify-between items-center"><div><h2 className="text-2xl font-black text-white leading-none tracking-tight">{item.name}</h2><div className="text-xs text-cyan-400 font-mono mt-1 uppercase tracking-widest">{initialLocation} {subZoneLabel ? `> ${subZoneLabel}` : ''}</div></div><button onClick={onClose} className="bg-white/5 hover:bg-white/10 text-white p-3 rounded-xl font-bold backdrop-blur-md transition-all active:scale-90">✕</button></div><div className="flex-1 flex flex-col items-center justify-center relative overflow-hidden">
-                    <div className="absolute inset-0 bg-gradient-to-b from-transparent via-cyan-900/5 to-transparent pointer-events-none"></div>
-                    <div className={`text-[9rem] font-black font-mono tracking-tighter leading-none mb-4 transition-all duration-200 select-none ${diffColor}`}>{diffSign}{sessionDiff}</div>
-                    <div className="text-xl font-mono font-bold text-gray-400 mb-8 bg-black/60 px-6 py-2 rounded-full border border-white/10 backdrop-blur-md shadow-lg">Total: <span className="text-white drop-shadow-[0_0_5px_rgba(255,255,255,0.5)]">{value}</span></div>
-
-                    {isMultiCount ? (
-                        <div className="w-full px-6 max-w-sm relative z-10">
-                            <div className="text-center text-xs text-cyan-500/70 font-bold mb-4 uppercase tracking-[0.2em]">Multi-Count Slots</div>
-                            <div className="grid grid-cols-2 gap-4">{slots.map((sVal, idx) => (<div key={idx} className="relative group"><div className="absolute top-2 left-3 text-[10px] text-cyan-500 font-bold group-hover:text-white transition-colors z-10">SLOT {idx+1}</div><input type="number" className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-4 pt-7 text-white font-mono text-3xl text-center focus:border-cyan-500 focus:bg-cyan-900/10 focus:shadow-[0_0_20px_rgba(6,182,212,0.2)] outline-none transition-all" value={sVal || ""} placeholder="0" onChange={(e) => handleSlotChange(idx, e.target.value)} /></div>))}</div>
+                <div className="fixed inset-0 z-50 flex flex-col items-center justify-center p-2 animate-in backdrop-blur-xl bg-black/90">
+                    <div className="glass-strong w-full max-w-md rounded-3xl overflow-hidden flex flex-col h-[90vh] shadow-[0_0_50px_rgba(0,0,0,0.8)] border border-white/5 relative">
+                        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-cyan-500 via-purple-500 to-pink-500 opacity-50"></div>
+                        
+                        <div className="p-5 bg-black/40 border-b border-white/5 flex justify-between items-center">
+                            <div>
+                                <h2 className="text-2xl font-black text-white leading-none tracking-tight">{item.name}</h2>
+                                <div className="text-xs text-cyan-400 font-mono mt-1 uppercase tracking-widest">{initialLocation} {subZoneLabel ? `> ${subZoneLabel}` : ''}</div>
+                            </div>
+                            <button onClick={onClose} className="bg-white/5 hover:bg-white/10 text-white p-3 rounded-xl font-bold backdrop-blur-md transition-all active:scale-90">✕</button>
                         </div>
-                    ) : (
-                        <>
-                            {/* --- WEIGHT INPUT MOVED HERE (Between Total and Buttons) --- */}
-                            {isOpenZone && (
-                                <div className="w-full px-6 max-w-sm relative z-10 mb-5">
-                                    {(!item.weight_full || !item.weight_empty) ? (
-                                        <button onClick={() => onOpenCalibration(item)} className="w-full py-4 bg-yellow-500/10 border border-yellow-500/50 rounded-xl text-yellow-400 font-bold flex items-center justify-center gap-2 hover:bg-yellow-500/20 transition-all shadow-[0_0_15px_rgba(234,179,8,0.2)] backdrop-blur-sm animate-pulse"><Icons.Wrench /> ⚠️ SETUP WEIGHTS</button>
-                                    ) : (
-                                        <div className="flex flex-col gap-3">
-                                            <div className="flex justify-between items-center px-1"><span className="text-xs text-cyan-500 font-bold uppercase tracking-widest">Weight Calc</span><button onClick={() => onOpenCalibration(item)} className="text-xs text-indigo-400 font-bold flex items-center gap-1 hover:text-white transition-colors"><Icons.Wrench size={12} /> Edit Setup</button></div>
-                                            <div className="flex gap-3">
-                                                <div className="relative w-full">
-                                                    <input type="number" placeholder="Enter Grams..." className="w-full bg-black/50 border border-white/20 rounded-xl px-4 py-4 text-white font-mono text-center text-2xl focus:border-cyan-500 focus:shadow-[0_0_15px_rgba(6,182,212,0.3)] outline-none transition-all placeholder-gray-700" value={manualGrams} onChange={e=>handleManualInput(e.target.value)} />
-                                                    <div className="absolute right-4 top-5 text-gray-500 text-sm font-bold">g</div>
-                                                </div>
-                                            </div>
+
+                        <div className="flex-1 flex flex-col items-center justify-center relative overflow-hidden">
+                            <div className="absolute inset-0 bg-gradient-to-b from-transparent via-cyan-900/5 to-transparent pointer-events-none"></div>
+                            
+                            <div className={`text-[9rem] font-black font-mono tracking-tighter leading-none mb-4 transition-all duration-200 select-none ${diffColor}`}>{diffSign}{sessionDiff}</div>
+                            
+                            <div className="flex items-center gap-4 mb-6 relative z-10">
+                                <div className="text-xl font-mono font-bold text-gray-400 bg-black/60 px-6 py-3 rounded-2xl border border-white/10 backdrop-blur-md shadow-lg flex flex-col items-center min-w-[100px]">
+                                    <span className="text-[10px] uppercase tracking-widest text-cyan-500 mb-1">Total</span>
+                                    <span className="text-white drop-shadow-[0_0_5px_rgba(255,255,255,0.5)] text-3xl">{value}</span>
+                                    {scaleAddedValue > 0 && isOpenZone && (
+                                        <div className="text-[10px] text-emerald-400 font-bold mt-1">
+                                            (Base: {startVal} + {scaleAddedValue})
                                         </div>
                                     )}
                                 </div>
-                            )}
-
-                            <div className="grid grid-cols-2 gap-5 w-full px-6 max-w-sm mb-5 relative z-10">
-                                <div className="flex flex-col gap-3 items-end">
-                                    {isSmallGroup ? (
-                                        <>
-                                            <button onClick={()=>handleDelta(-12)} className="w-full h-12 bg-red-950/30 hover:bg-red-900/50 text-red-400 border border-red-900/50 rounded-xl font-bold backdrop-blur-sm transition-all shadow-sm active:scale-95">- 12</button>
-                                            <button onClick={()=>handleDelta(-6)} className="w-full h-12 bg-red-950/30 hover:bg-red-900/50 text-red-400 border border-red-900/50 rounded-xl font-bold backdrop-blur-sm transition-all shadow-sm active:scale-95">- 6</button>
-                                            <button onClick={()=>handleDelta(-3)} className="w-full h-12 bg-red-950/30 hover:bg-red-900/50 text-red-400 border border-red-900/50 rounded-xl font-bold backdrop-blur-sm transition-all shadow-sm active:scale-95">- 3</button>
-                                        </>
-                                    ) : (
-                                        <>
-                                            {!isOpenZone && <button onClick={()=>handleDelta(-24)} className="w-full h-12 bg-red-950/30 hover:bg-red-900/50 text-red-400 border border-red-900/50 rounded-xl font-bold backdrop-blur-sm transition-all shadow-sm active:scale-95">- 24</button>}
-                                            {!isOpenZone && <button onClick={()=>handleDelta(-12)} className="w-full h-12 bg-red-950/30 hover:bg-red-900/50 text-red-400 border border-red-900/50 rounded-xl font-bold backdrop-blur-sm transition-all shadow-sm active:scale-95">- 12</button>}
-                                            {!isOpenZone && <button onClick={()=>handleDelta(-6)} className="w-full h-12 bg-red-950/30 hover:bg-red-900/50 text-red-400 border border-red-900/50 rounded-xl font-bold backdrop-blur-sm transition-all shadow-sm active:scale-95">- 6</button>}
-                                        </>
-                                    )}
-                                    <button onClick={()=>handleDelta(-1)} className="w-full h-16 bg-red-600/10 hover:bg-red-600/30 text-red-500 rounded-2xl font-black text-3xl shadow-[0_0_20px_rgba(220,38,38,0.15)] border border-red-500/40 active:scale-95 transition-all">- 1</button>
-                                </div>
-                                <div className="flex flex-col gap-3 items-start">
-                                    {isSmallGroup ? (
-                                        <>
-                                            <button onClick={()=>handleDelta(12)} className="w-full h-12 bg-emerald-950/30 hover:bg-emerald-900/50 text-emerald-400 border border-emerald-900/50 rounded-xl font-bold backdrop-blur-sm transition-all shadow-sm active:scale-95">+ 12</button>
-                                            <button onClick={()=>handleDelta(6)} className="w-full h-12 bg-emerald-950/30 hover:bg-emerald-900/50 text-emerald-400 border border-emerald-900/50 rounded-xl font-bold backdrop-blur-sm transition-all shadow-sm active:scale-95">+ 6</button>
-                                            <button onClick={()=>handleDelta(3)} className="w-full h-12 bg-emerald-950/30 hover:bg-emerald-900/50 text-emerald-400 border border-emerald-900/50 rounded-xl font-bold backdrop-blur-sm transition-all shadow-sm active:scale-95">+ 3</button>
-                                        </>
-                                    ) : (
-                                        <>
-                                            {!isOpenZone && <button onClick={()=>handleDelta(24)} className="w-full h-12 bg-emerald-950/30 hover:bg-emerald-900/50 text-emerald-400 border border-emerald-900/50 rounded-xl font-bold backdrop-blur-sm transition-all shadow-sm active:scale-95">+ 24</button>}
-                                            {!isOpenZone && <button onClick={()=>handleDelta(12)} className="w-full h-12 bg-emerald-950/30 hover:bg-emerald-900/50 text-emerald-400 border border-emerald-900/50 rounded-xl font-bold backdrop-blur-sm transition-all shadow-sm active:scale-95">+ 12</button>}
-                                            {!isOpenZone && <button onClick={()=>handleDelta(6)} className="w-full h-12 bg-emerald-950/30 hover:bg-emerald-900/50 text-emerald-400 border border-emerald-900/50 rounded-xl font-bold backdrop-blur-sm transition-all shadow-sm active:scale-95">+ 6</button>}
-                                        </>
-                                    )}
-                                    <button onClick={()=>handleDelta(1)} className="w-full h-16 bg-emerald-600/10 hover:bg-emerald-600/30 text-emerald-400 rounded-2xl font-black text-3xl shadow-[0_0_20px_rgba(16,185,129,0.15)] border border-emerald-500/40 active:scale-95 transition-all">+ 1</button>
+                                <div className="text-xl font-mono font-bold text-gray-500 bg-white/5 px-6 py-3 rounded-2xl border border-white/5 backdrop-blur-md flex flex-col items-center min-w-[100px]">
+                                    <span className="text-[10px] uppercase tracking-widest text-gray-600 mb-1">Last</span>
+                                    {/* Muestra el Historial de ESTA zona específica */}
+                                    <span className="text-gray-300 text-3xl">{historyVal}</span>
                                 </div>
                             </div>
-                            
-                            {isOpenZone && (
-                                <div className="grid grid-cols-2 gap-5 w-full px-6 max-w-sm relative z-10">
-                                    <button onClick={()=>handleDelta(-0.1)} className="bg-white/5 hover:bg-white/10 text-red-400 h-12 rounded-xl font-bold text-lg border border-white/5 transition-all active:scale-95">- 0.1</button>
-                                    <button onClick={()=>handleDelta(0.1)} className="bg-white/5 hover:bg-white/10 text-emerald-400 h-12 rounded-xl font-bold text-lg border border-white/5 transition-all active:scale-95">+ 0.1</button>
+
+                            {isMultiCount ? (
+                                <div className="w-full px-6 max-w-sm relative z-10">
+                                    <div className="text-center text-xs text-cyan-500/70 font-bold mb-4 uppercase tracking-[0.2em]">Multi-Count Slots</div>
+                                    <div className="grid grid-cols-2 gap-4">{slots.map((sVal, idx) => (<div key={idx} className="relative group"><div className="absolute top-2 left-3 text-[10px] text-cyan-500 font-bold group-hover:text-white transition-colors z-10">SLOT {idx+1}</div><input type="number" className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-4 pt-7 text-white font-mono text-3xl text-center focus:border-cyan-500 focus:bg-cyan-900/10 focus:shadow-[0_0_20px_rgba(6,182,212,0.2)] outline-none transition-all" value={sVal || ""} placeholder="0" onChange={(e) => handleSlotChange(idx, e.target.value)} /></div>))}</div>
                                 </div>
+                            ) : (
+                                <>
+                                    {isOpenZone && (
+                                        <div className="w-full px-6 max-w-sm relative z-10 mb-6 animate-in">
+                                            {(!item.weight_full || !item.weight_empty) ? (
+                                                <button onClick={() => onOpenCalibration(item)} className="w-full py-4 bg-yellow-500/10 border border-yellow-500/50 rounded-xl text-yellow-400 font-bold flex items-center justify-center gap-2 hover:bg-yellow-500/20 transition-all shadow-[0_0_15px_rgba(234,179,8,0.2)] backdrop-blur-sm animate-pulse"><Icons.Wrench /> ⚠️ SETUP WEIGHTS</button>
+                                            ) : (
+                                                <div className="flex flex-col gap-3">
+                                                    <div className="flex justify-between items-end px-1">
+                                                        <span className="text-xs text-cyan-500 font-bold uppercase tracking-widest">Weight Calc</span>
+                                                        <button onClick={onConnectScale} disabled={isScaleConnected} className={`text-[10px] font-bold px-3 py-1 rounded-full border transition-all flex items-center gap-1 uppercase tracking-wider ${isScaleConnected ? 'bg-blue-500/20 text-blue-400 border-blue-500/50 shadow-[0_0_10px_rgba(59,130,246,0.3)] cursor-default' : 'bg-white/5 text-gray-400 border-white/10 hover:bg-white/10 hover:text-white'}`}><Icons.Bluetooth className="w-3 h-3" /> {isScaleConnected ? "Connected" : "Connect Scale"}</button>
+                                                    </div>
+                                                    
+                                                    <div className="flex gap-2">
+                                                        <div className="relative w-full group">
+                                                            <div className={`absolute inset-0 bg-gradient-to-r from-cyan-500/20 to-blue-500/20 rounded-xl blur transition-opacity duration-500 ${manualGrams ? 'opacity-100' : 'opacity-0'}`}></div>
+                                                            <input type="number" placeholder="0" className={`relative w-full bg-black/60 border rounded-xl px-4 py-3 text-white font-mono text-center text-3xl outline-none transition-all placeholder-gray-700 ${isScaleConnected ? 'border-blue-500/50 shadow-[0_0_15px_rgba(59,130,246,0.2)]' : 'border-white/20 focus:border-cyan-500 focus:shadow-[0_0_15px_rgba(6,182,212,0.3)]'}`} value={manualGrams} onChange={e=>handleManualInput(e.target.value)} />
+                                                            <div className="absolute right-4 top-5 text-gray-500 text-xs font-bold pointer-events-none">g</div>
+                                                            {manualGrams && <div className="absolute left-4 top-5 text-cyan-500 text-[10px] font-bold pointer-events-none animate-pulse">AUTO SUM</div>}
+                                                        </div>
+                                                        {value > 0 && scaleAddedValue > 0 && (
+                                                            <button onClick={handleAddScaleToTotal} className="bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl px-4 border border-blue-400/50 shadow-[0_0_15px_rgba(37,99,235,0.4)] animate-in flex flex-col items-center justify-center min-w-[80px]">
+                                                                <span className="text-[10px] uppercase tracking-widest opacity-80">ADD</span>
+                                                                <span className="text-xl">+{scaleAddedValue}</span>
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+
+                                    <div className="grid grid-cols-2 gap-5 w-full px-6 max-w-sm mb-5 relative z-10">
+                                        <div className="flex flex-col gap-3 items-end">
+                                            {isCaseZone && <button onClick={()=>handleDelta(-24)} className="w-full h-12 bg-purple-950/30 hover:bg-purple-900/50 text-purple-400 border border-purple-900/50 rounded-xl font-bold backdrop-blur-sm transition-all shadow-sm active:scale-95">- CASE (24)</button>}
+                                            {isSmallGroup ? (
+                                                <>
+                                                    <button onClick={()=>handleDelta(-12)} className="w-full h-12 bg-red-950/30 hover:bg-red-900/50 text-red-400 border border-red-900/50 rounded-xl font-bold backdrop-blur-sm transition-all shadow-sm active:scale-95">- 12</button>
+                                                    <button onClick={()=>handleDelta(-6)} className="w-full h-12 bg-red-950/30 hover:bg-red-900/50 text-red-400 border border-red-900/50 rounded-xl font-bold backdrop-blur-sm transition-all shadow-sm active:scale-95">- 6</button>
+                                                    <button onClick={()=>handleDelta(-3)} className="w-full h-12 bg-red-950/30 hover:bg-red-900/50 text-red-400 border border-red-900/50 rounded-xl font-bold backdrop-blur-sm transition-all shadow-sm active:scale-95">- 3</button>
+                                                </>
+                                            ) : (
+                                                <>
+                                                    {!isOpenZone && <button onClick={()=>handleDelta(-24)} className="w-full h-12 bg-red-950/30 hover:bg-red-900/50 text-red-400 border border-red-900/50 rounded-xl font-bold backdrop-blur-sm transition-all shadow-sm active:scale-95">- 24</button>}
+                                                    {!isOpenZone && <button onClick={()=>handleDelta(-12)} className="w-full h-12 bg-red-950/30 hover:bg-red-900/50 text-red-400 border border-red-900/50 rounded-xl font-bold backdrop-blur-sm transition-all shadow-sm active:scale-95">- 12</button>}
+                                                    {!isOpenZone && <button onClick={()=>handleDelta(-6)} className="w-full h-12 bg-red-950/30 hover:bg-red-900/50 text-red-400 border border-red-900/50 rounded-xl font-bold backdrop-blur-sm transition-all shadow-sm active:scale-95">- 6</button>}
+                                                </>
+                                            )}
+                                            <button onClick={()=>handleDelta(-1)} className="w-full h-16 bg-red-600/10 hover:bg-red-600/30 text-red-500 rounded-2xl font-black text-3xl shadow-[0_0_20px_rgba(220,38,38,0.15)] border border-red-500/40 active:scale-95 transition-all">- 1</button>
+                                        </div>
+                                        <div className="flex flex-col gap-3 items-start">
+                                            {isCaseZone && <button onClick={()=>handleDelta(24)} className="w-full h-12 bg-purple-950/30 hover:bg-purple-900/50 text-purple-400 border border-purple-900/50 rounded-xl font-bold backdrop-blur-sm transition-all shadow-sm active:scale-95">+ CASE (24)</button>}
+                                            {isSmallGroup ? (
+                                                <>
+                                                    <button onClick={()=>handleDelta(12)} className="w-full h-12 bg-emerald-950/30 hover:bg-emerald-900/50 text-emerald-400 border border-emerald-900/50 rounded-xl font-bold backdrop-blur-sm transition-all shadow-sm active:scale-95">+ 12</button>
+                                                    <button onClick={()=>handleDelta(6)} className="w-full h-12 bg-emerald-950/30 hover:bg-emerald-900/50 text-emerald-400 border border-emerald-900/50 rounded-xl font-bold backdrop-blur-sm transition-all shadow-sm active:scale-95">+ 6</button>
+                                                    <button onClick={()=>handleDelta(3)} className="w-full h-12 bg-emerald-950/30 hover:bg-emerald-900/50 text-emerald-400 border border-emerald-900/50 rounded-xl font-bold backdrop-blur-sm transition-all shadow-sm active:scale-95">+ 3</button>
+                                                </>
+                                            ) : (
+                                                <>
+                                                    {!isOpenZone && <button onClick={()=>handleDelta(24)} className="w-full h-12 bg-emerald-950/30 hover:bg-emerald-900/50 text-emerald-400 border border-emerald-900/50 rounded-xl font-bold backdrop-blur-sm transition-all shadow-sm active:scale-95">+ 24</button>}
+                                                    {!isOpenZone && <button onClick={()=>handleDelta(12)} className="w-full h-12 bg-emerald-950/30 hover:bg-emerald-900/50 text-emerald-400 border border-emerald-900/50 rounded-xl font-bold backdrop-blur-sm transition-all shadow-sm active:scale-95">+ 12</button>}
+                                                    {!isOpenZone && <button onClick={()=>handleDelta(6)} className="w-full h-12 bg-emerald-950/30 hover:bg-emerald-900/50 text-emerald-400 border border-emerald-900/50 rounded-xl font-bold backdrop-blur-sm transition-all shadow-sm active:scale-95">+ 6</button>}
+                                                </>
+                                            )}
+                                            <button onClick={()=>handleDelta(1)} className="w-full h-16 bg-emerald-600/10 hover:bg-emerald-600/30 text-emerald-400 rounded-2xl font-black text-3xl shadow-[0_0_20px_rgba(16,185,129,0.15)] border border-emerald-500/40 active:scale-95 transition-all">+ 1</button>
+                                        </div>
+                                    </div>
+                                    
+                                    {isOpenZone && (
+                                        <div className="grid grid-cols-2 gap-5 w-full px-6 max-w-sm relative z-10">
+                                            <button onClick={()=>handleDelta(-0.1)} className="bg-white/5 hover:bg-white/10 text-red-400 h-12 rounded-xl font-bold text-lg border border-white/5 transition-all active:scale-95">- 0.1</button>
+                                            <button onClick={()=>handleDelta(0.1)} className="bg-white/5 hover:bg-white/10 text-emerald-400 h-12 rounded-xl font-bold text-lg border border-white/5 transition-all active:scale-95">+ 0.1</button>
+                                        </div>
+                                    )}
+                                </>
                             )}
-                        </>
-                    )}
-                    
-                    </div><button onClick={onContinue} className="m-5 bg-gradient-to-r from-indigo-900/80 to-purple-900/80 hover:from-indigo-800 hover:to-purple-800 text-white font-black text-xl h-16 rounded-2xl shadow-[0_0_30px_rgba(99,102,241,0.3)] active:scale-95 transition-all flex items-center justify-center gap-3 border border-white/10 relative z-20">DONE <span className="text-xs font-normal opacity-60 font-mono tracking-widest">(NEXT SCAN)</span></button></div></div>
+                        </div>
+                        
+                        <button onClick={onContinue} className="m-5 bg-gradient-to-r from-indigo-900/80 to-purple-900/80 hover:from-indigo-800 hover:to-purple-800 text-white font-black text-xl h-16 rounded-2xl shadow-[0_0_30px_rgba(99,102,241,0.3)] active:scale-95 transition-all flex items-center justify-center gap-3 border border-white/10 relative z-20">DONE <span className="text-xs font-normal opacity-60 font-mono tracking-widest">(NEXT SCAN)</span></button>
+                    </div>
+                </div>
             );
         };
+
+        // --- PARTE 4 & 5: APP & UTILS ---
 
         const LocationModal = ({ onClose, onSelect }) => {
             const locs = [
@@ -458,13 +525,16 @@
                 {id:'purchases',l:'Purchases',i:Icons.ShoppingCart, c: 'text-emerald-400'}
             ];
             const [selMain, setSelMain] = useState(null);
+            const subZones = selMain ? (ZONES_CONFIG[selMain] || []) : [];
+
             return (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-in backdrop-blur-xl bg-black/80">
                     <div className="glass-strong w-full max-w-lg rounded-3xl overflow-hidden flex flex-col max-h-[80vh] shadow-[0_0_50px_rgba(0,0,0,0.8)] border border-white/5">
                         <div className="p-5 border-b border-white/10 flex justify-between items-center bg-black/40"><h2 className="text-white font-bold tracking-widest uppercase text-sm">{selMain ? 'Select Zone' : 'Select Location'}</h2><button onClick={onClose} className="text-gray-500 font-bold hover:text-white transition-colors">CANCEL</button></div>
                         <div className="p-4 overflow-y-auto grid grid-cols-2 gap-4">
                             {!selMain ? locs.map(l=><button key={l.id} onClick={()=>{if(ZONES_CONFIG[l.id]) setSelMain(l.id); else onSelect(l.id, null);}} className="glass hover:bg-white/5 hover:border-white/20 text-white p-6 rounded-2xl flex flex-col items-center gap-3 transition-all active:scale-95 group border-transparent"><l.i className={`w-10 h-10 ${l.c} drop-shadow-[0_0_10px_rgba(255,255,255,0.2)] group-hover:scale-110 transition-transform`}/><span className="font-bold tracking-wider">{l.l}</span></button>) : 
-                            (ZONES_CONFIG[selMain] || []).map(z=><button key={z.id} onClick={()=>onSelect(selMain, z.id)} className="glass hover:bg-white/5 hover:border-white/20 text-white p-5 rounded-2xl flex flex-col items-center gap-3 transition-all active:scale-95 group border-transparent"><span className="text-3xl filter grayscale group-hover:grayscale-0 transition-all duration-300">{z.icon}</span><span className="font-medium text-sm text-gray-300 group-hover:text-white">{z.label}</span></button>)}
+                            subZones.map(z=><button key={z.id} onClick={()=>onSelect(selMain, z.id)} className="glass hover:bg-white/5 hover:border-white/20 text-white p-5 rounded-2xl flex flex-col items-center gap-3 transition-all active:scale-95 group border-transparent"><span className="text-3xl filter grayscale group-hover:grayscale-0 transition-all duration-300">{z.icon}</span><span className="font-medium text-sm text-gray-300 group-hover:text-white">{z.label}</span></button>)}
+                            {selMain && subZones.length === 0 && (<div className="col-span-2 text-center text-gray-500 py-10">No sub-zones. <button onClick={()=>onSelect(selMain, null)} className="text-cyan-400 underline ml-2">Select Main</button></div>)}
                         </div>
                     </div>
                 </div>
@@ -490,6 +560,7 @@
                 </div>
             );
         };
+
         function App() {
             const [auth, setAuth] = useState(false);
             const [data, setData] = useState([]);
@@ -507,33 +578,17 @@
             const [pendingBarcode, setPendingBarcode] = useState(null);
             const [calibratingItem, setCalibratingItem] = useState(null);
             const [isOnline, setIsOnline] = useState(navigator.onLine);
-            
-            // --- TIME LOOP STATES ---
-            const [timeStr, setTimeStr] = useState(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
-            const [showAltTitle, setShowAltTitle] = useState(false);
+            const [scaleWeight, setScaleWeight] = useState("");
+            const [isScaleConnected, setIsScaleConnected] = useState(false);
+            const [expandedCats, setExpandedCats] = useState({});
 
-            // Handle Online Status, Clock & Title Animation
+            const toggleCategory = (catName) => { setExpandedCats(prev => ({ ...prev, [catName]: !prev[catName] })); };
+
             useEffect(() => {
                 const handleStatus = () => setIsOnline(navigator.onLine);
                 window.addEventListener('online', handleStatus);
                 window.addEventListener('offline', handleStatus);
-                
-                // Actualizar reloj cada segundo
-                const clockInterval = setInterval(() => {
-                    setTimeStr(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
-                }, 1000);
-
-                // Alternar Título cada 4 segundos
-                const toggleInterval = setInterval(() => {
-                    setShowAltTitle(prev => !prev);
-                }, 4000);
-
-                return () => {
-                    window.removeEventListener('online', handleStatus);
-                    window.removeEventListener('offline', handleStatus);
-                    clearInterval(clockInterval);
-                    clearInterval(toggleInterval);
-                };
+                return () => { window.removeEventListener('online', handleStatus); window.removeEventListener('offline', handleStatus); };
             }, []);
 
             useEffect(() => {
@@ -545,100 +600,113 @@
                     if (u) {
                         setStatus("Cloud Connected ☁️");
                         const path = typeof __app_id !== 'undefined' ? `artifacts/${__app_id}/public/data/inventory` : 'inventory';
-                        window.fb.onSnapshot(window.fb.doc(db, path, 'master'), (s) => {
-                            if(s.exists()) setData(s.data().items);
-                        });
+                        window.fb.onSnapshot(window.fb.doc(db, path, 'master'), (s) => { if(s.exists()) setData(s.data().items); });
                     } else setStatus("Offline");
                 });
             }, []);
 
-            // --- CRITICAL UPDATE LOGIC FOR AUTO-SORT ---
+            // --- SINCRONIZACIÓN EN VIVO ---
+            useEffect(() => {
+                if (editItem && data.length > 0) {
+                    let foundItem = null;
+                    for(const cat of data) {
+                        foundItem = cat.items.find(i => i.id === editItem.id);
+                        if(foundItem) break;
+                    }
+                    if (foundItem) {
+                        if (JSON.stringify(foundItem) !== JSON.stringify(editItem)) {
+                            setEditItem(foundItem);
+                        }
+                    }
+                }
+            }, [data]); 
+
+            const handleConnectScale = async () => {
+                try {
+                    const device = await navigator.bluetooth.requestDevice({ filters: [{ namePrefix: 'Etekcity' }], optionalServices: [0xFFF0] });
+                    const server = await device.gatt.connect();
+                    const service = await server.getPrimaryService(0xFFF0);
+                    const characteristic = await service.getCharacteristic(0xFFF1);
+                    await characteristic.startNotifications();
+                    setIsScaleConnected(true);
+                    playSound('connect');
+                    characteristic.addEventListener('characteristicvaluechanged', (event) => {
+                        const value = event.target.value;
+                        if (value.byteLength < 12) return;
+                        const weightRaw = value.getUint16(11, true); 
+                        const finalWeight = (weightRaw / 10).toFixed(1); 
+                        setScaleWeight(finalWeight);
+                    });
+                    device.addEventListener('gattserverdisconnected', () => { setIsScaleConnected(false); playSound('error'); });
+                } catch (error) { console.error("Scale Error:", error); alert("Bluetooth Error: " + error.message); setIsScaleConnected(false); }
+            };
+
             const handleUpdate = (id, fieldOrObj, val) => {
-                const timestamp = Date.now(); // Marca de tiempo actual
+                const timestamp = Date.now();
                 const newData = data.map(cat => ({
-                    ...cat, 
+                    ...cat,
                     items: cat.items.map(i => {
                         if(i.id === id) {
-                            // Si es actualización compleja (objeto)
-                            if(typeof fieldOrObj === 'object') {
-                                return { ...i, ...fieldOrObj, last_modified: timestamp };
-                            }
-                            // Si es actualización simple (campo, valor)
-                            return { ...i, [fieldOrObj]: val, last_modified: timestamp };
+                            if(typeof fieldOrObj === 'object') return {...i, ...fieldOrObj, last_updated: timestamp};
+                            return {...i, [fieldOrObj]: val, last_updated: timestamp};
                         }
                         return i;
                     })
                 }));
-                
                 setData(newData);
-                
-                // Guardar en Firebase
                 const db = window.fb.getFirestore();
                 const path = typeof __app_id !== 'undefined' ? `artifacts/${__app_id}/public/data/inventory` : 'inventory';
                 window.fb.setDoc(window.fb.doc(db, path, 'master'), { items: newData }).catch(console.error);
             };
 
             const handleLocalReset = () => {
-                if(!confirm("Reset local counts? (This clears your view to 0)")) return;
+                if(!confirm("⚠️ START NEW WEEK?\n\nThis will reset active counts to 0 and save them as 'Last Count'.")) return;
                 const resetData = data.map(cat => ({
                     ...cat,
                     items: cat.items.map(i => {
                         const resetItem = { ...i };
-                        Object.values(ZONES_CONFIG).forEach(zoneArr => { zoneArr.forEach(z => { resetItem[z.id] = 0; }); });
-                        ['bar1', 'bar2', 'bodega', 'barroluco', 'purchases'].forEach(k => { resetItem[k] = 0; });
-                        // Reset timestamp too so sorting resets
-                        resetItem.last_modified = 0; 
+                        Object.values(ZONES_CONFIG).forEach(zoneArr => { 
+                            zoneArr.forEach(z => { 
+                                resetItem[`last_${z.id}`] = parseFloat(i[z.id]) || 0; 
+                                resetItem[z.id] = 0; 
+                            }); 
+                        });
+                        ['bar1', 'bar2', 'bodega', 'barroluco', 'purchases'].forEach(k => { 
+                            resetItem[`last_${k}`] = parseFloat(i[k]) || 0; 
+                            resetItem[k] = 0; 
+                        });
                         return resetItem;
                     })
                 }));
                 setData(resetData);
-                playSound('sub'); 
-                setShowMenu(false);
+                const db = window.fb.getFirestore();
+                const path = typeof __app_id !== 'undefined' ? `artifacts/${__app_id}/public/data/inventory` : 'inventory';
+                window.fb.setDoc(window.fb.doc(db, path, 'master'), { items: resetData }).catch(console.error);
+                playSound('sub'); setShowMenu(false);
             };
 
             const handleBackup = () => {
                 const blob = new Blob([JSON.stringify(data)], { type: "application/json" });
                 const url = URL.createObjectURL(blob);
-                const link = document.createElement("a");
-                link.href = url;
-                link.download = `Scanner_Pro_Backup_${new Date().toLocaleDateString().replace(/\//g,'-')}.json`;
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
+                const link = document.createElement("a"); link.href = url; link.download = `Scanner_Backup_${new Date().toLocaleDateString().replace(/\//g,'-')}.json`;
+                document.body.appendChild(link); link.click(); document.body.removeChild(link);
             };
 
             const handleScan = (txt) => {
                 let found = null;
                 for(const c of data) { const m = c.items.find(i => (i.barcode && i.barcode.includes(txt)) || (i.barcode_case && i.barcode_case === txt)); if(m){found=m; break;} }
-                if(found) { 
-                    setEditItem(found); 
-                    setScanning(false); 
-                    playSound('success'); 
-                } else {
-                    playSound('error');
-                    setPendingBarcode(txt);
-                    setScanning(false);
-                }
+                if(found) { setEditItem(found); setScanning(false); playSound('success'); } else { playSound('error'); setPendingBarcode(txt); setScanning(false); }
             };
 
             const handleLinkBarcode = (item) => {
                 const currentCodes = item.barcode ? item.barcode : "";
                 const newCodes = currentCodes ? `${currentCodes},${pendingBarcode}` : pendingBarcode;
                 handleUpdate(item.id, 'barcode', newCodes);
-                setPendingBarcode(null);
-                setEditItem(item); 
-                playSound('success');
+                setPendingBarcode(null); setEditItem(item); playSound('success');
             };
 
-            const updateItemStickers = (itemId, newStickersArray) => {
-                handleUpdate(itemId, 'sticker_ids', newStickersArray);
-            };
-            
-            const saveBottleWeights = (itemId, full, empty) => {
-                handleUpdate(itemId, { weight_full: full, weight_empty: empty });
-                setCalibratingItem(null);
-                playSound('success');
-            };
+            const updateItemStickers = (itemId, newStickersArray) => handleUpdate(itemId, 'sticker_ids', newStickersArray);
+            const saveBottleWeights = (itemId, full, empty) => { handleUpdate(itemId, { weight_full: full, weight_empty: empty }); setCalibratingItem(null); playSound('success'); };
 
             const filteredData = useMemo(() => {
                 const term = search.toLowerCase();
@@ -649,48 +717,23 @@
 
             return (
                 <div className="pb-40 pt-6 px-5 max-w-xl mx-auto relative min-h-screen">
-                    {/* Header Zone */}
                     <div className="flex justify-between items-end mb-8 relative z-20">
                         <div className="flex flex-col">
-                             {/* TITULO ANIMADO: SCANNER PRO <-> HORA ACTUAL */}
-                             <div className="relative h-8 w-64 mb-1">
-                                 {/* Estado 1: Scanner Pro */}
-                                 <h1 className={`absolute left-0 bottom-0 font-black text-3xl text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-purple-500 italic leading-none drop-shadow-[0_0_10px_rgba(6,182,212,0.5)] transition-all duration-1000 transform ${showAltTitle ? 'opacity-0 -translate-y-4 pointer-events-none' : 'opacity-100 translate-y-0'}`}>
-                                    SCANNER <span className="text-white">PRO</span>
-                                 </h1>
-                                 
-                                 {/* Estado 2: Hora (Verde Neón) */}
-                                 <h1 className={`absolute left-0 bottom-0 font-bold font-mono text-3xl text-[#4ade80] leading-none drop-shadow-[0_0_15px_rgba(74,222,128,0.6)] transition-all duration-1000 transform ${showAltTitle ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'}`}>
-                                    {timeStr}
-                                 </h1>
-                             </div>
-
+                             <h1 className="font-black text-3xl text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-purple-500 italic leading-none drop-shadow-[0_0_10px_rgba(6,182,212,0.5)]">SCANNER <span className="text-white">PRO</span></h1>
                              <div className="flex items-center gap-2 mt-1">
-                                <span className="text-[10px] text-gray-500 font-mono tracking-widest uppercase">Sys.v4.3</span>
+                                <span className="text-[10px] text-gray-500 font-mono tracking-widest uppercase">Sys.v4.6</span>
                                 <div className={`w-2 h-2 rounded-full animate-pulse ${isOnline ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)]' : 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.8)]'}`}></div>
+                                {isScaleConnected && <div className="text-[10px] bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded border border-blue-500/50 flex items-center gap-1 shadow-[0_0_10px_rgba(59,130,246,0.4)]"><Icons.Bluetooth className="w-3 h-3"/> SCALE ON</div>}
                              </div>
                         </div>
-                        
                         <div className="flex items-center gap-3">
-                            {/* BOTÓN CHECK LIST */}
-                            <button 
-                                onClick={() => setShowCheck(true)}
-                                className="glass text-white p-3 rounded-xl hover:bg-cyan-500/10 hover:border-cyan-500/50 active:scale-95 transition-all group hover:shadow-[0_0_15px_rgba(6,182,212,0.2)]"
-                            >
-                                <Icons.List className="h-6 w-6 group-hover:text-cyan-400 transition-colors" />
-                            </button>
-
-                            {/* BOTÓN SETTINGS */}
-                            <button onClick={() => setShowMenu(!showMenu)} className="glass text-white p-3 rounded-xl hover:bg-purple-500/10 hover:border-purple-500/50 active:scale-95 transition-all group hover:shadow-[0_0_15px_rgba(168,85,247,0.2)]">
-                                <Icons.Settings className="group-hover:text-purple-400 transition-colors" />
-                            </button>
+                            <button onClick={() => setShowCheck(true)} className="glass text-white p-3 rounded-xl hover:bg-cyan-500/10 hover:border-cyan-500/50 active:scale-95 transition-all group hover:shadow-[0_0_15px_rgba(6,182,212,0.2)]"><Icons.List className="h-6 w-6 group-hover:text-cyan-400 transition-colors" /></button>
+                            <button onClick={() => setShowMenu(!showMenu)} className="glass text-white p-3 rounded-xl hover:bg-purple-500/10 hover:border-purple-500/50 active:scale-95 transition-all group hover:shadow-[0_0_15px_rgba(168,85,247,0.2)]"><Icons.Settings className="group-hover:text-purple-400 transition-colors" /></button>
                         </div>
-
                         {showMenu && (
                             <>
                                 <div className="menu-backdrop" onClick={() => setShowMenu(false)}></div>
                                 <div className="absolute top-16 right-0 glass-strong p-2 rounded-2xl shadow-[0_0_30px_rgba(0,0,0,1)] z-50 flex flex-col gap-1 w-64 animate-in border border-white/10">
-                                    {/* MENU REORDENADO */}
                                     <button onClick={() => { setShowPurchases(true); setShowMenu(false); }} className="flex items-center gap-3 p-4 hover:bg-white/5 rounded-xl text-gray-300 hover:text-white font-bold transition-all text-sm uppercase tracking-wide border border-transparent hover:border-white/10"><Icons.Package className="text-emerald-500" /> Purchases</button>
                                     <button onClick={() => { setShowPremium(true); setShowMenu(false); }} className="flex items-center gap-3 p-4 hover:bg-white/5 rounded-xl text-gray-300 hover:text-white font-bold transition-all text-sm uppercase tracking-wide border border-transparent hover:border-white/10"><Icons.Star className="text-yellow-500" /> Bottle Ctrl</button>
                                     <button onClick={() => { handleBackup(); setShowMenu(false); }} className="flex items-center gap-3 p-4 hover:bg-white/5 rounded-xl text-gray-300 hover:text-white font-bold transition-all text-sm uppercase tracking-wide border border-transparent hover:border-white/10"><Icons.Save className="text-indigo-500" /> Backup Data</button>
@@ -700,7 +743,6 @@
                         )}
                     </div>
 
-                    {/* Zone Selector */}
                     <button onClick={() => setShowLoc(true)} className="w-full glass border border-white/10 p-5 rounded-2xl flex items-center justify-between mb-6 group active:scale-95 transition-all hover:border-cyan-500/30 hover:shadow-[0_0_20px_rgba(6,182,212,0.1)] relative overflow-hidden">
                         <div className="absolute top-0 bottom-0 left-0 w-1 bg-cyan-500"></div>
                         <div className="flex items-center gap-4">
@@ -708,88 +750,69 @@
                             <div className="text-left">
                                 <div className="text-[10px] text-gray-500 uppercase font-bold tracking-[0.2em] mb-1">Current Zone</div>
                                 <div className="text-white font-black text-xl leading-none uppercase tracking-wide group-hover:text-cyan-400 transition-colors">
-                                    {ZONES_CONFIG[loc] 
-                                        ? (ZONES_CONFIG[loc].find(z=>z.id===subZone)?.label || 'Select Zone') 
-                                        : loc === 'purchases' ? 'Purchases' 
-                                        : loc === 'barroluco' ? 'Barroluco' 
-                                        : 'Main Area'}
+                                    {ZONES_CONFIG[loc] ? (ZONES_CONFIG[loc].find(z=>z.id===subZone)?.label || 'Select Zone') : loc === 'purchases' ? 'Purchases' : loc === 'barroluco' ? 'Barroluco' : 'Main Area'}
                                 </div>
                             </div>
                         </div>
                         <Icons.ChevronDown className="text-gray-600 group-hover:text-white transition-colors"/>
                     </button>
 
-                    {/* Search Bar */}
                     <div className="relative mb-8 group">
                         <div className="absolute -inset-0.5 bg-gradient-to-r from-cyan-500 to-purple-600 rounded-2xl opacity-20 group-hover:opacity-40 transition duration-300 blur"></div>
-                        <div className="relative">
-                            <Icons.Search className="absolute left-4 top-3.5 text-gray-500 group-focus-within:text-cyan-400 transition-colors" />
-                            <input type="text" placeholder="Search item manually..." className="w-full bg-black border border-white/10 rounded-xl py-3 pl-12 pr-4 text-white focus:border-cyan-500/50 outline-none transition-all placeholder-gray-600 focus:bg-white/5" value={search} onChange={e=>setSearch(e.target.value)} />
-                        </div>
+                        <div className="relative"><Icons.Search className="absolute left-4 top-3.5 text-gray-500 group-focus-within:text-cyan-400 transition-colors" /><input type="text" placeholder="Search item manually..." className="w-full bg-black border border-white/10 rounded-xl py-3 pl-12 pr-4 text-white focus:border-cyan-500/50 outline-none transition-all placeholder-gray-600 focus:bg-white/5" value={search} onChange={e=>setSearch(e.target.value)} /></div>
                     </div>
 
-                    {/* Inventory List */}
-                    {filteredData.map(cat => (
-                        <div key={cat.category} className="mb-6">
-                            <h3 className="text-purple-400 font-bold text-xs uppercase mb-3 ml-2 tracking-[0.2em] drop-shadow-[0_0_5px_rgba(168,85,247,0.4)]">{cat.category}</h3>
-                            <div className="space-y-2">
-                                {cat.items.map(item => {
-                                    const qty = parseFloat(item[subZone || loc]) || 0;
-                                    const hasQty = qty > 0;
-                                    return (
-                                        <div key={item.id} onClick={() => setEditItem(item)} className={`
-                                            p-4 rounded-xl flex justify-between items-center cursor-pointer border transition-all duration-200
-                                            ${hasQty 
-                                                ? "glass bg-cyan-900/10 border-cyan-500/30 shadow-[0_0_15px_rgba(6,182,212,0.05)]" 
-                                                : "glass border-transparent hover:border-white/10 active:scale-[0.98]"}
-                                        `}>
-                                            <div className={`font-medium transition-colors ${hasQty ? 'text-white' : 'text-gray-400'}`}>{item.name}</div>
-                                            {hasQty && <div className="bg-cyan-500 text-black font-black font-mono px-3 py-1 rounded shadow-[0_0_10px_rgba(6,182,212,0.6)] text-sm">{qty}</div>}
-                                        </div>
-                                    );
-                                })}
+                    {filteredData.map(cat => {
+                        const isExpanded = search.length > 0 || expandedCats[cat.category];
+                        return (
+                            <div key={cat.category} className="mb-4 glass border border-white/5 rounded-2xl overflow-hidden transition-all duration-300">
+                                <button onClick={() => toggleCategory(cat.category)} className="w-full p-5 flex justify-between items-center bg-white/5 hover:bg-white/10 active:bg-white/20 transition-colors">
+                                    <h3 className="text-purple-400 font-bold text-xs uppercase tracking-[0.2em] drop-shadow-[0_0_5px_rgba(168,85,247,0.4)] text-left">{cat.category}</h3>
+                                    <Icons.ChevronDown className={`text-gray-500 w-5 h-5 transition-transform duration-300 ${isExpanded ? 'rotate-180 text-cyan-400' : ''}`} />
+                                </button>
+                                {isExpanded && (
+                                    <div className="p-2 space-y-2 bg-black/20 animate-in">
+                                        {cat.items.map(item => {
+                                            const qty = parseFloat(item[subZone || loc]) || 0;
+                                            const hasQty = qty > 0;
+                                            return (
+                                                <div key={item.id} onClick={() => setEditItem(item)} className={`p-4 rounded-xl flex justify-between items-center cursor-pointer border transition-all duration-200 ${hasQty ? "glass bg-cyan-900/10 border-cyan-500/30 shadow-[0_0_15px_rgba(6,182,212,0.05)]" : "glass border-transparent hover:border-white/10 active:scale-[0.98]"}`}>
+                                                    <div className={`font-medium transition-colors ${hasQty ? 'text-white' : 'text-gray-400'}`}>{item.name}</div>
+                                                    {hasQty && <div className="bg-cyan-500 text-black font-black font-mono px-3 py-1 rounded shadow-[0_0_10px_rgba(6,182,212,0.6)] text-sm">{qty}</div>}
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                )}
                             </div>
-                        </div>
-                    ))}
+                        );
+                    })}
 
-                    {/* Floating Scan Button */}
                     <button onClick={() => setScanning(true)} className="fixed bottom-10 left-1/2 -translate-x-1/2 h-20 w-20 bg-black text-white rounded-full shadow-[0_0_40px_rgba(6,182,212,0.4)] flex items-center justify-center border-2 border-cyan-500 z-30 active:scale-90 transition-all group overflow-hidden">
                          <div className="absolute inset-0 bg-cyan-500 opacity-20 group-hover:opacity-40 animate-pulse"></div>
                         <Icons.Scan className="w-8 h-8 text-cyan-400 group-hover:text-white transition-colors relative z-10" />
                     </button>
 
-                    {pendingBarcode && (
-                        <LinkModal 
-                            barcode={pendingBarcode} 
-                            data={data} 
-                            onLink={handleLinkBarcode} 
-                            onClose={() => {
-                                setPendingBarcode(null);
-                                setTimeout(() => setScanning(true), 300); 
-                            }} 
-                        />
-                    )}
-
+                    {pendingBarcode && <LinkModal barcode={pendingBarcode} data={data} onLink={handleLinkBarcode} onClose={() => { setPendingBarcode(null); setTimeout(() => setScanning(true), 300); }} />}
                     {showPremium && <PremiumControlModal onClose={() => setShowPremium(false)} data={data} onUpdateStickers={updateItemStickers} />}
                     {showPurchases && <PurchasesLogModal onClose={() => setShowPurchases(false)} data={data} />}
                     {showCheck && <ReviewModal onClose={() => setShowCheck(false)} data={data} onUpdate={handleUpdate} />}
                     {showLoc && <LocationModal onClose={() => setShowLoc(false)} onSelect={(l, s) => { setLoc(l); setSubZone(s); setShowLoc(false); }} />}
                     {scanning && <ScannerModal onScan={handleScan} onClose={() => setScanning(false)} />}
-                    
                     {calibratingItem && <BottleCalibrationModal item={calibratingItem} onClose={()=>setCalibratingItem(null)} onSave={saveBottleWeights} />}
-
+                    
                     {editItem && (
                         <QuickEditModal 
                             item={editItem} 
                             initialLocation={loc} 
                             initialSubZone={subZone} 
                             onClose={() => setEditItem(null)} 
-                            onOpenCalibration={setCalibratingItem}
-                            onContinue={() => {
-                                setEditItem(null);
-                                setTimeout(() => setScanning(true), 300); 
-                            }}
-                            onUpdate={handleUpdate} 
+                            onOpenCalibration={setCalibratingItem} 
+                            onContinue={() => { setEditItem(null); setTimeout(() => setScanning(true), 300); }} 
+                            onUpdate={handleUpdate}
+                            scaleWeight={scaleWeight}
+                            isScaleConnected={isScaleConnected}
+                            onConnectScale={handleConnectScale}
                         />
                     )}
                 </div>
